@@ -1,2 +1,26 @@
 server:
   port: 8081
+
+spring:
+  application:
+    name: auth-user-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/signum_animae_db
+    username: ${Username}
+    password: ${Password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
