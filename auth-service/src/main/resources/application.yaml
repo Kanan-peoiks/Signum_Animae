@@ -5,7 +5,7 @@ spring:
   application:
     name: auth-user-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/signum_animae_db
+    url: jdbc:postgresql://localhost:5432/signum_animae_authservice
     username: ${Username}
     password: ${Password}
     driver-class-name: org.postgresql.Driver
