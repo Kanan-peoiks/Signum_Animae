@@ -3,6 +3,9 @@ package com.example.authservice.service;
 import com.example.authservice.dto.AuthResponse;
 import com.example.authservice.dto.LoginRequest;
 import com.example.authservice.dto.RegisterRequest;
+import com.example.authservice.exception.InvalidCredentialsException;
+import com.example.authservice.exception.UserAlreadyExistsException;
+import com.example.authservice.exception.UserNotFoundException;
 import com.example.authservice.model.ArtistProfile;
 import com.example.authservice.model.Role;
 import com.example.authservice.model.User;
@@ -18,15 +21,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepo userRepo;
+    private final UserRepo userRepository;
     private final ArtistProfileRepository artistProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepo.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Bu email artıq qeydiyyatdan keçib!");
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Bu email (" + request.getEmail() + ") artıq qeydiyyatdan keçib!");
         }
 
         User user = User.builder()
@@ -37,7 +40,7 @@ public class AuthService {
                 .city(request.getCity())
                 .build();
 
-        userRepo.save(user);
+        userRepository.save(user);
 
         if (user.getRole() == Role.ARTIST) {
             ArtistProfile profile = ArtistProfile.builder()
@@ -53,11 +56,11 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepo.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("İstifadəçi tapılmadı!"));
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("İstifadəçi tapılmadı!"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Şifrəniz səhvdir!");
+            throw new InvalidCredentialsException("Daxil edilən şifrə yanlışdır!");
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
