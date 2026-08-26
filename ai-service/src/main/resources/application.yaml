@@ -1,2 +1,11 @@
 server:
   port: 8084
+
+spring:
+  application:
+    name: ai-service
+
+gemini:
+  api:
+    key: ${KEY}
+    model: "gemini-flash-latest"
