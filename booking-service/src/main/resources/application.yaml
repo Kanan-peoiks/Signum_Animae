@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: booking-service
+  cloud:
+    openfeign:
+      httpclient:
+        hc5:
+          enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5432/signum_animae_bookingservice
     username: ${Username}
@@ -16,3 +21,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+services:
+  auth-service:
+    url: http://localhost:8081
