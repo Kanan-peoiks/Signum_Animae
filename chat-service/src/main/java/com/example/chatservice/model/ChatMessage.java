@@ -19,18 +19,38 @@ public class ChatMessage {
     private Long id;
 
     @Column(nullable = false)
-    private Long senderId;
+    private Long chatRoomId;
 
     @Column(nullable = false)
-    private Long recipientId;
+    private Long senderId;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
-    private LocalDateTime timestamp;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MessageType messageType;
+
+    /** Only meaningful when messageType == OFFER. */
+    private Double amount;
+
+    /** Only meaningful when messageType == OFFER. Null for every other message type. */
+    @Enumerated(EnumType.STRING)
+    private OfferStatus offerStatus;
+
+    @Builder.Default
+    private boolean read = false;
+
+    private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        this.timestamp = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+        if (this.messageType == null) {
+            this.messageType = MessageType.TEXT;
+        }
+        if (this.messageType == MessageType.OFFER && this.offerStatus == null) {
+            this.offerStatus = OfferStatus.PENDING;
+        }
     }
 }
