@@ -781,18 +781,26 @@ const App = {
           '<button class="btn btn-primary btn-block" id="aiImgBtn" disabled>Analiz et</button>' +
           '<div id="aiImgOut"></div>' +
         '</div>' +
-      '</div>';
+      '</div>' +
+      '<div class="section-title">Saxlanmış ideyalar</div>' +
+      '<div id="aiHistoryBox">' + spinner() + '</div>';
+
+    let lastIdea = null;   // { prompt, style, aiRecommendation } - son "Məsləhət al" nəticəsi
+    let lastImage = null;  // { prompt, aiRecommendation } - son "Analiz et" nəticəsi
 
     $('#aiIdeaBtn').addEventListener('click', async (e) => {
       const prompt = $('#aiPrompt').value.trim();
       if (!prompt) { toastErr('Əvvəlcə ideyanı yaz.'); return; }
+      const style = $('#aiStyle').value.trim();
       const done = withBusy(e.currentTarget, 'Düşünür');
       $('#aiIdeaOut').innerHTML = '';
       try {
-        const res = await Api.ai.generateIdea({
-          userPrompt: prompt, preferredStyle: $('#aiStyle').value.trim()
-        });
-        $('#aiIdeaOut').innerHTML = '<div class="ai-out">' + esc(res.aiRecommendation) + '</div>';
+        const res = await Api.ai.generateIdea({ userPrompt: prompt, preferredStyle: style });
+        lastIdea = { prompt, style, aiRecommendation: res.aiRecommendation };
+        $('#aiIdeaOut').innerHTML = '<div class="ai-out">' + esc(res.aiRecommendation) + '</div>' +
+          '<button class="btn btn-ghost btn-sm" id="aiSaveIdeaBtn" style="margin-top:10px">Saxla</button>';
+        $('#aiSaveIdeaBtn').addEventListener('click', (ev) =>
+          this.saveAiIdea(lastIdea.prompt, lastIdea.style, lastIdea.aiRecommendation, ev.currentTarget, host));
       } catch (err) { toastErr(err.message); }
       finally { done(); }
     });
@@ -827,11 +835,112 @@ const App = {
       const done = withBusy(e.currentTarget, 'Analiz edir');
       $('#aiImgOut').innerHTML = '';
       try {
-        const res = await Api.ai.analyzeImage(chosen, $('#aiImgPrompt').value);
-        $('#aiImgOut').innerHTML = '<div class="ai-out">' + esc(res.aiRecommendation) + '</div>';
+        const imgPrompt = $('#aiImgPrompt').value.trim();
+        const res = await Api.ai.analyzeImage(chosen, imgPrompt);
+        lastImage = { prompt: imgPrompt || 'Yüklənmiş eskizin analizi', aiRecommendation: res.aiRecommendation };
+        $('#aiImgOut').innerHTML = '<div class="ai-out">' + esc(res.aiRecommendation) + '</div>' +
+          '<button class="btn btn-ghost btn-sm" id="aiSaveImgBtn" style="margin-top:10px">Saxla</button>';
+        $('#aiSaveImgBtn').addEventListener('click', (ev) =>
+          this.saveAiIdea(lastImage.prompt, '', lastImage.aiRecommendation, ev.currentTarget, host));
       } catch (err) { toastErr(err.message); }
       finally { done(); }
     });
+
+    this.loadAiHistory(host);
+  },
+
+  /* ---------- AI Studiya tarixçəsi ---------- */
+  async saveAiIdea(promptText, styleText, recommendation, btn, host) {
+    const done = withBusy(btn, 'Saxlanır');
+    try {
+      await Api.aiIdeas.save({
+        customerId: Session.userId,
+        prompt: promptText,
+        style: styleText || null,
+        aiRecommendation: recommendation
+      });
+      toastOk('Saxlanıldı.');
+      this.loadAiHistory(host);
+    } catch (err) { toastErr(err.message); }
+    finally { done(); }
+  },
+
+  async loadAiHistory(host) {
+    const box = $('#aiHistoryBox', host);
+    if (!box) return;
+    box.innerHTML = spinner();
+    let ideas;
+    try {
+      ideas = await Api.aiIdeas.forCustomer(Session.userId);
+    } catch (err) {
+      box.innerHTML = emptyState(err.message, '!');
+      return;
+    }
+
+    box.innerHTML = ideas.length
+      ? '<div class="rows">' + ideas.map(idea => {
+          const snippet = idea.aiRecommendation.length > 220
+            ? idea.aiRecommendation.slice(0, 220) + '…' : idea.aiRecommendation;
+          return '<div class="row-card"><div class="row-main">' +
+            '<div class="row-title">' + esc(idea.prompt) +
+              (idea.style ? ' · ' + esc(idea.style) : '') + '</div>' +
+            '<div class="row-meta" style="white-space:pre-wrap">' + esc(snippet) + '</div>' +
+            '<div class="row-meta">' + esc(fmtDay(idea.createdAt)) +
+              (idea.bookingId ? ' · Bağlı sifariş: #' + esc(idea.bookingId) : '') + '</div>' +
+            '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">' +
+              (!idea.bookingId
+                ? '<button class="btn btn-ghost btn-sm link-idea" data-id="' + idea.id + '">Sifarişə bağla</button>'
+                : '') +
+              '<button class="btn btn-ghost btn-sm delete-idea" data-id="' + idea.id + '">Sil</button>' +
+            '</div>' +
+          '</div></div>';
+        }).join('') + '</div>'
+      : emptyState('Hələ saxlanmış ideya yoxdur — yuxarıda bir məsləhət al və ya eskiz analiz etdir, bəyəndiyini saxla.', '◈');
+
+    $$('.delete-idea', box).forEach(b => b.addEventListener('click', async () => {
+      try {
+        await Api.aiIdeas.remove(Number(b.dataset.id), Session.userId);
+        toastOk('Silindi.');
+        this.loadAiHistory(host);
+      } catch (err) { toastErr(err.message); }
+    }));
+
+    $$('.link-idea', box).forEach(b => b.addEventListener('click', () => this.promptLinkIdea(Number(b.dataset.id), host)));
+  },
+
+  async promptLinkIdea(ideaId, host) {
+    let bookings;
+    try {
+      bookings = Session.isArtist
+        ? await Api.bookings.forArtist(Session.userId)
+        : await Api.bookings.forCustomer(Session.userId);
+    } catch (err) { toastErr(err.message); return; }
+
+    if (!bookings.length) { toastErr('Hələ heç bir sifarişin yoxdur.'); return; }
+
+    openModal('Sifarişə bağla',
+      '<label class="field"><span>Hansı sifarişə bağlansın?</span>' +
+        '<select id="linkBookingSelect">' +
+          bookings.map(b =>
+            '<option value="' + b.id + '">#' + b.id + ' — ' + esc(fmtDay(b.bookingDate)) +
+              ' (' + esc(STATUS_AZ[b.status] || b.status) + ')</option>').join('') +
+        '</select></label>',
+      {
+        okText: 'Bağla',
+        onOk: async (ov, close, okBtn) => {
+          const bookingId = Number($('#linkBookingSelect', ov).value);
+          const done = withBusy(okBtn, 'Bağlanır');
+          try {
+            await Api.aiIdeas.link(ideaId, Session.userId, bookingId);
+            close();
+            toastOk('Sifarişə bağlandı.');
+            this.loadAiHistory(host);
+          } catch (err) {
+            toastErr(err.message);
+            done();
+          }
+        }
+      });
   },
 
   /* ============================================================

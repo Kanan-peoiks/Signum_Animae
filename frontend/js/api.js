@@ -202,6 +202,15 @@ const Api = {
     }
   },
 
+  /* ---- booking-service: AI Studiya tarixçəsi (saxlanmış ideyalar) ---- */
+  aiIdeas: {
+    save:        (payload) => POST('/api/v1/ai-ideas', payload),
+    forCustomer: (customerId) => GET('/api/v1/ai-ideas/customer/' + customerId),
+    link:        (id, customerId, bookingId) =>
+                 PATCH('/api/v1/ai-ideas/' + id + '/link?customerId=' + customerId + '&bookingId=' + bookingId),
+    remove:      (id, customerId) => DELETE('/api/v1/ai-ideas/' + id + '?customerId=' + customerId)
+  },
+
   /* ---- notification-service ---- */
   notifications: {
     send:      (payload) => POST('/api/v1/notifications/send', payload),

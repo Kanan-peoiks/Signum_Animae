@@ -46,6 +46,16 @@ public class GlobalExceptionHandler {
         return build(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(SavedIdeaNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSavedIdeaNotFound(SavedIdeaNotFoundException ex) {
+        return build(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SavedIdeaOwnershipException.class)
+    public ResponseEntity<ErrorResponse> handleSavedIdeaOwnership(SavedIdeaOwnershipException ex) {
+        return build(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return build(ex.getMessage(), HttpStatus.BAD_REQUEST);
