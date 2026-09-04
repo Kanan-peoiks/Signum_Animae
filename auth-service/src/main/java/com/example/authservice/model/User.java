@@ -35,6 +35,12 @@ public class User {
     private String city;
     private String profileImageUrl;
 
+    /** Nullable on purpose (not a primitive boolean): a plain "ADD COLUMN ... NOT NULL"
+     *  would fail against an existing non-empty table under ddl-auto=update. Null is
+     *  treated as "not premium" everywhere this is read. Demo-only self-toggle for now
+     *  (see UpdateUserProfileRequest) - no real payment/subscription flow behind it. */
+    private Boolean premium;
+
     private LocalDateTime createdAt;
 
     @PrePersist
