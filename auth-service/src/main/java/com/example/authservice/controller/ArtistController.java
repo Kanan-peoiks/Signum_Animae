@@ -23,10 +23,13 @@ public class ArtistController {
     public ResponseEntity<List<ArtistProfileDto>> searchArtists(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String style,
-            @RequestParam(required = false) String minRating) {
+            @RequestParam(required = false) String minRating,
+            @RequestParam(required = false) String minExperience,
+            @RequestParam(required = false) String sortBy) {
 
         Double minRatingVal = (minRating != null && !minRating.isBlank()) ? Double.parseDouble(minRating) : null;
-        return ResponseEntity.ok(artistService.searchArtists(city, style, minRatingVal));
+        Integer minExperienceVal = (minExperience != null && !minExperience.isBlank()) ? Integer.parseInt(minExperience) : null;
+        return ResponseEntity.ok(artistService.searchArtists(city, style, minRatingVal, minExperienceVal, sortBy));
     }
 
     @GetMapping("/public/popular")

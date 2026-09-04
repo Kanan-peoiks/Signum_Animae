@@ -43,4 +43,11 @@ public final class ArtistSpecifications {
         }
         return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("ratingAvg"), minRating);
     }
+
+    public static Specification<ArtistProfile> minExperience(Integer minExperienceYears) {
+        if (minExperienceYears == null) {
+            return null;
+        }
+        return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("experienceYears"), minExperienceYears);
+    }
 }

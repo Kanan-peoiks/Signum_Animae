@@ -7,6 +7,7 @@ import com.example.authservice.model.ArtistProfile;
 import com.example.authservice.repo.ArtistProfileRepository;
 import com.example.authservice.repo.ArtistSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,17 @@ public class ArtistService {
     private final ArtistPopularityService artistPopularityService;
 
     public List<ArtistProfileDto> searchArtists(String city, String style, Double minRating) {
+        return searchArtists(city, style, minRating, null, null);
+    }
+
+    /**
+     * @param minExperienceYears yeni, istəyə bağlı filtr - minimum təcrübə ili.
+     * @param sortBy yeni, istəyə bağlı sıralama: "rating" (ən yüksək reytinq əvvəldə) və ya
+     *               "experience" (ən təcrübəli əvvəldə). Digər/boş dəyər - əvvəlki kimi
+     *               sıralamasız (verilənlər bazasının öz sırası).
+     */
+    public List<ArtistProfileDto> searchArtists(String city, String style, Double minRating,
+                                                 Integer minExperienceYears, String sortBy) {
         // Spring Data JPA 4.x's Specification.where()/.and() throw on a null argument now
         // (Assert.notNull inside), unlike older versions where null meant "no restriction".
         // So we filter out the filters that weren't supplied ourselves, then combine only
@@ -42,10 +54,18 @@ public class ArtistService {
         if (ratingSpec != null) {
             filters.add(ratingSpec);
         }
+        Specification<ArtistProfile> expSpec = ArtistSpecifications.minExperience(minExperienceYears);
+        if (expSpec != null) {
+            filters.add(expSpec);
+        }
 
         Specification<ArtistProfile> spec = Specification.allOf(filters);
 
-        return artistProfileRepository.findAll(spec)
+        Sort sort = "rating".equalsIgnoreCase(sortBy) ? Sort.by(Sort.Direction.DESC, "ratingAvg")
+                : "experience".equalsIgnoreCase(sortBy) ? Sort.by(Sort.Direction.DESC, "experienceYears")
+                : Sort.unsorted();
+
+        return artistProfileRepository.findAll(spec, sort)
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());

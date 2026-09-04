@@ -105,6 +105,18 @@ const App = {
             '<option value="">Fərqi yoxdur</option>' +
             '<option value="3">3+</option><option value="4">4+</option><option value="4.5">4.5+</option>' +
           '</select></label>' +
+        '<label class="field"><span>Minimum təcrübə</span>' +
+          '<select id="fExperience">' +
+            '<option value="">Fərqi yoxdur</option>' +
+            '<option value="1">1+ il</option><option value="3">3+ il</option>' +
+            '<option value="5">5+ il</option><option value="10">10+ il</option>' +
+          '</select></label>' +
+        '<label class="field"><span>Sırala</span>' +
+          '<select id="fSort">' +
+            '<option value="">Fərqi yoxdur</option>' +
+            '<option value="rating">Ən yüksək reytinq</option>' +
+            '<option value="experience">Ən təcrübəli</option>' +
+          '</select></label>' +
         '<button class="btn btn-primary" id="searchBtn">Axtar</button>' +
       '</div>' +
       '<div class="section-title">Populyar ustalar</div>' +
@@ -116,6 +128,8 @@ const App = {
     ['fCity', 'fStyle'].forEach(id =>
       $('#' + id).addEventListener('keydown', e => { if (e.key === 'Enter') this.runSearch(); }));
     $('#fRating').addEventListener('change', () => this.runSearch());
+    $('#fExperience').addEventListener('change', () => this.runSearch());
+    $('#fSort').addEventListener('change', () => this.runSearch());
 
     // populyarlıq siyahısı Redis-dəki baxış sayğacından formalaşır
     try {
@@ -137,7 +151,8 @@ const App = {
     box.innerHTML = spinner();
     try {
       const list = await Api.artists.search(
-        $('#fCity').value.trim(), $('#fStyle').value.trim(), $('#fRating').value);
+        $('#fCity').value.trim(), $('#fStyle').value.trim(), $('#fRating').value,
+        $('#fExperience').value, $('#fSort').value);
       box.innerHTML = list.length
         ? '<div class="grid grid-artists">' + list.map(a => this.artistCard(a)).join('') + '</div>'
         : emptyState('Bu şərtlərə uyğun usta tapılmadı.', '✦');

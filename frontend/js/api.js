@@ -119,11 +119,13 @@ const Api = {
 
   /* ---- auth-service: rəssam profilləri ---- */
   artists: {
-    search(city, style, minRating) {
+    search(city, style, minRating, minExperience, sortBy) {
       const q = new URLSearchParams();
-      if (city)      q.set('city', city);
-      if (style)     q.set('style', style);
-      if (minRating) q.set('minRating', minRating);
+      if (city)         q.set('city', city);
+      if (style)        q.set('style', style);
+      if (minRating)    q.set('minRating', minRating);
+      if (minExperience) q.set('minExperience', minExperience);
+      if (sortBy)       q.set('sortBy', sortBy);
       const qs = q.toString();
       return GET('/api/v1/artists/public/search' + (qs ? '?' + qs : ''));
     },
