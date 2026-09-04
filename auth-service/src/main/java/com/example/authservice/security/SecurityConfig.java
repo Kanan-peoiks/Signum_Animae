@@ -26,7 +26,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**", "/api/v1/artists/public/**").permitAll()
+                        .requestMatchers(
+                                "/api/v1/auth/**",
+                                "/api/v1/artists/public/**",
+                                "/api/v1/artists/internal/**",
+                                "/api/v1/artists/*",   // PATCH /{userId} self-edit - see ArtistController javadoc
+                                "/api/v1/users/**"     // self-service profile edit - same trust boundary reasoning
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();
