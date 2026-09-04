@@ -24,3 +24,5 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:local-dev-internal-token}
