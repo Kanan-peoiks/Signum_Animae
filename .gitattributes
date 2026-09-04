@@ -1,3 +1,9 @@
+# Default: normalize line endings to LF for anything text-ish going forward, so a
+# CRLF-saving editor (or Windows checkout settings) can't quietly turn a one-line
+# change into a "187 insertions / 187 deletions" diff again - this project already
+# hit that once with notification-service/ai-service.
+* text=auto eol=lf
+
 /gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
