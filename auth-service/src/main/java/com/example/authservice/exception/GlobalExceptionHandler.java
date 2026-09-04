@@ -32,6 +32,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
+    @ExceptionHandler(ArtistNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleArtistNotFound(ArtistNotFoundException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .status(HttpStatus.NOT_FOUND.value()) // 404
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
         ErrorResponse error = ErrorResponse.builder()
@@ -40,6 +50,20 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(org.springframework.web.bind.MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .orElse("Göndərilən məlumat düzgün deyil.");
+        ErrorResponse error = ErrorResponse.builder()
+                .message(message)
+                .status(HttpStatus.BAD_REQUEST.value())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(Exception.class)
