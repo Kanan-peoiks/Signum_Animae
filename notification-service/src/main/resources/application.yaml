@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: notification-service
+  cloud:
+    openfeign:
+      httpclient:
+        hc5:
+          enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5432/signum_animae_notificationservice
     username: ${Username}
@@ -23,3 +28,10 @@ spring:
           auth: true
           starttls:
             enable: true
+
+services:
+  auth-service:
+    url: http://localhost:8081
+
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:local-dev-internal-token}
