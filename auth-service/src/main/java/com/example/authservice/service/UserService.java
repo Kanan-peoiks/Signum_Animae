@@ -36,7 +36,6 @@ public class UserService {
         return InternalUserSummaryDto.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
-                .premium(Boolean.TRUE.equals(user.getPremium()))
                 .build();
     }
 
@@ -61,9 +60,6 @@ public class UserService {
         if (request.getProfileImageUrl() != null) {
             user.setProfileImageUrl(request.getProfileImageUrl());
         }
-        if (request.getPremium() != null) {
-            user.setPremium(request.getPremium());
-        }
 
         return mapToDto(userRepository.save(user), true);
     }
@@ -81,7 +77,6 @@ public class UserService {
                 .role(user.getRole())
                 .city(user.getCity())
                 .profileImageUrl(user.getProfileImageUrl())
-                .premium(Boolean.TRUE.equals(user.getPremium()))
                 .createdAt(user.getCreatedAt())
                 .build();
     }

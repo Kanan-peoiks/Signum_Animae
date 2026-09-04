@@ -312,11 +312,7 @@ const App = {
     try {
       user = await Api.users.get(customerUserId);
       // Artıq server özü qərar verir: qiymət/qeyd kimi məxfi sahələr heç
-      // qayıtmır, usta adı isə çağıranın premium statusuna görə artıq server
-      // tərəfində baş hərflərə endirilib ya da tam gəlir (bax
-      // BookingService.getCompletedSummaryForCustomer) - burda əlavə maskalama
-      // etməyə ehtiyac yoxdur, çünki əvvəlki versiya tam adı hər halda
-      // brauzerə göndərib sonra gizlədirdi (yəni real qorunma yox idi).
+      // qayıtmır (bax BookingService.getCompletedSummaryForCustomer).
       pastTattoos = await Api.bookings.completedSummary(customerUserId).catch(() => []);
       pastTattoos.sort((a, b) => (b.bookingDate || '').localeCompare(a.bookingDate || ''));
     } catch (err) {
@@ -324,7 +320,6 @@ const App = {
       return;
     }
 
-    const isPremiumViewer = !!(Session.data && Session.data.premium);
     const emailRow = user.email
       ? '<dt>E-poçt</dt><dd>' + esc(user.email) + '</dd>'
       : '';
@@ -345,12 +340,6 @@ const App = {
         '</dl>' +
       '</div>' +
       '<div class="section-title">Keçmiş tatuajlar (' + pastTattoos.length + ')</div>' +
-      (!isPremiumViewer && pastTattoos.length
-        ? '<p class="form-note" style="text-align:left;margin:-6px 0 14px">' +
-            'Ustaların tam adını görmək üçün premium abunəçi olmalısan — hələlik ' +
-            'yalnız baş hərfləri göstərilir. <a href="#" id="goPremium" ' +
-            'style="color:var(--brass)">Profilimdən aç</a>.</p>'
-        : '') +
       '<div class="rows">' +
         (pastTattoos.length
           ? pastTattoos.map(t => {
@@ -364,8 +353,6 @@ const App = {
       '</div>';
 
     $('#backBtn').addEventListener('click', () => this.nav('orders'));
-    const goPremium = $('#goPremium');
-    if (goPremium) goPremium.addEventListener('click', (e) => { e.preventDefault(); this.nav('profile'); });
   },
 
   /* ============================================================
@@ -963,11 +950,6 @@ const App = {
           '<label class="field" style="margin-top:13px"><span>Profil şəkli linki</span>' +
             '<input type="text" id="pAvatar" value="' + esc(user.profileImageUrl || '') +
               '" placeholder="https://…"></label>' +
-          '<label class="field-check" style="margin-top:15px">' +
-            '<input type="checkbox" id="pPremium"' + (user.premium ? ' checked' : '') + '>' +
-            '<span>Premium abunəçi (demo) — başqasının profilində keçmiş sifarişlərin ' +
-              'ustalarının tam adını yalnız premium istifadəçilər görə bilir</span>' +
-          '</label>' +
           '<button class="btn btn-primary btn-block" style="margin-top:16px" id="saveUserBtn">Hesabı yenilə</button>' +
         '</div>' +
 
@@ -1007,10 +989,9 @@ const App = {
         const updated = await Api.users.update(Session.userId, {
           fullName: $('#pName').value.trim(),
           city: $('#pCity').value.trim(),
-          profileImageUrl: $('#pAvatar').value.trim(),
-          premium: $('#pPremium').checked
+          profileImageUrl: $('#pAvatar').value.trim()
         });
-        Session.patch({ fullName: updated.fullName, city: updated.city, premium: !!updated.premium });
+        Session.patch({ fullName: updated.fullName, city: updated.city });
         $('#whoName').textContent = updated.fullName;
         this.nameCache.set(Session.userId, updated.fullName);
         toastOk('Hesab yeniləndi.');

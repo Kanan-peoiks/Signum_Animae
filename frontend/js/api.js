@@ -151,8 +151,8 @@ const Api = {
     forArtist:   (artistId) => GET('/api/v1/bookings/artist/' + artistId),
     setStatus:   (id, status) => PATCH('/api/v1/bookings/' + id + '/status', { status }),
     /* Başqasının profilindəki "keçmiş tatuajlar" siyahısı - server artıq qiymət/qeyd
-       kimi məxfi sahələri kəsir və usta adını premium-a görə özü maskalayır (bax
-       booking-service BookingService.getCompletedSummaryForCustomer). */
+       kimi məxfi sahələri kəsir (bax booking-service
+       BookingService.getCompletedSummaryForCustomer). */
     completedSummary: (customerId) => GET('/api/v1/bookings/customer/' + customerId + '/completed-summary'),
     artistStats: (artistId) => GET('/api/v1/bookings/artist/' + artistId + '/stats')
   },

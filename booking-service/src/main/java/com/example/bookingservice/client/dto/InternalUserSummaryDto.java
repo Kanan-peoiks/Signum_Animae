@@ -11,5 +11,4 @@ import lombok.NoArgsConstructor;
 public class InternalUserSummaryDto {
     private Long id;
     private String fullName;
-    private boolean premium;
 }

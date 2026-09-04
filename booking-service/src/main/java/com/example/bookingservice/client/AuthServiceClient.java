@@ -21,8 +21,8 @@ public interface AuthServiceClient {
     @PatchMapping("/api/v1/artists/internal/{artistId}/rating")
     void updateArtistRating(@PathVariable("artistId") Long artistId, @RequestBody UpdateArtistRatingRequest request);
 
-    /** Used to decide, server-side, whether a viewer sees a past tattoo's artist by full
-     *  name or only initials (premium gating) - see BookingService.getCompletedSummaryForCustomer. */
+    /** Used to resolve a past tattoo's artist display name server-side - see
+     *  BookingService.getCompletedSummaryForCustomer. */
     @GetMapping("/api/v1/users/internal/{id}")
     InternalUserSummaryDto getUserSummary(@PathVariable("id") Long id);
 }

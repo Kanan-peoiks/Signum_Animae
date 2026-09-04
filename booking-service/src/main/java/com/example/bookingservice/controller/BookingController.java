@@ -56,12 +56,11 @@ public class BookingController {
     /**
      * The public "past tattoos" list shown on a customer's profile - anyone logged in
      * may call this (that's the feature), but it never exposes price/notes/reference
-     * images, and artist names are already masked to initials server-side unless the
-     * CALLER is premium. See BookingService.getCompletedSummaryForCustomer.
+     * images. See BookingService.getCompletedSummaryForCustomer.
      */
     @GetMapping("/customer/{customerId}/completed-summary")
     public ResponseEntity<List<CompletedTattooDto>> getCompletedSummary(@PathVariable Long customerId) {
-        return ResponseEntity.ok(bookingService.getCompletedSummaryForCustomer(customerId, customerId));
+        return ResponseEntity.ok(bookingService.getCompletedSummaryForCustomer(customerId));
     }
 
     @PatchMapping("/{id}/status")

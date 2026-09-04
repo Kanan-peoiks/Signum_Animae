@@ -99,7 +99,7 @@ async function completeLogin(auth) {
   Session.save(auth);
   try {
     const profile = await Api.users.get(auth.userId);
-    Session.patch({ fullName: profile.fullName, city: profile.city, premium: !!profile.premium });
+    Session.patch({ fullName: profile.fullName, city: profile.city });
   } catch (e) {
     Session.patch({ fullName: auth.email });
   }

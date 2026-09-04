@@ -12,11 +12,6 @@ import java.time.LocalDateTime;
  * profile (see BookingService.getCompletedSummaryForCustomer). Deliberately narrower
  * than BookingResponse: no estimatedPrice, no tattooConceptUrl - a stranger browsing
  * someone's profile has no business seeing what they paid.
- *
- * artistName is already masked to initials server-side when the VIEWER isn't premium -
- * the frontend used to do this masking itself after fetching full names for everyone,
- * which meant the real name was sitting in the network response the whole time. Now the
- * server only ever sends what the viewer is allowed to see.
  */
 @Data
 @Builder

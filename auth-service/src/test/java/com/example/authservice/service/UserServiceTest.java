@@ -37,7 +37,7 @@ class UserServiceTest {
     private User sampleUser() {
         return User.builder()
                 .id(7L).email("aygun@test.com").fullName("Aygün Məmmədova")
-                .role(Role.CUSTOMER).city("Bakı").premium(false)
+                .role(Role.CUSTOMER).city("Bakı")
                 .build();
     }
 
@@ -61,21 +61,6 @@ class UserServiceTest {
 
         assertThat(dto.getEmail()).isNull();
         assertThat(dto.getFullName()).isEqualTo("Aygün Məmmədova");
-    }
-
-    @Test
-    void updateUser_togglesPremiumFlag() {
-        init();
-        User user = sampleUser();
-        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-        request.setPremium(true);
-
-        UserProfileDto dto = userService.updateUser(7L, request);
-
-        assertThat(dto.isPremium()).isTrue();
     }
 
     @Test

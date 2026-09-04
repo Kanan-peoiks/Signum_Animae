@@ -14,7 +14,4 @@ public class UpdateUserProfileRequest {
 
     @Size(max = 500)
     private String profileImageUrl;
-
-    /** Demo-only premium self-toggle - see the comment on User.premium. */
-    private Boolean premium;
 }

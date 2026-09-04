@@ -19,6 +19,5 @@ public class UserProfileDto {
     private Role role;
     private String city;
     private String profileImageUrl;
-    private boolean premium;
     private LocalDateTime createdAt;
 }

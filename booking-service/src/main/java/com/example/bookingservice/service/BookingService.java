@@ -117,12 +117,10 @@ public class BookingService {
     /**
      * The "past tattoos" section of a customer's profile - intentionally viewable by
      * ANY logged-in user (that's the feature), but narrowed to COMPLETED bookings only,
-     * with no price/reference-image fields, and the artist's name masked to initials
-     * unless the viewer (callerId) is premium. Looking up "is the viewer premium" and
-     * "what's this artist's name" both happen here, server-side, instead of the
-     * frontend deciding after already receiving the real name.
+     * with no price/reference-image fields. Artist display names are resolved server-side
+     * via auth-service instead of the frontend fetching full profiles itself.
      */
-    public List<CompletedTattooDto> getCompletedSummaryForCustomer(Long customerId, Long callerId) {
+    public List<CompletedTattooDto> getCompletedSummaryForCustomer(Long customerId) {
         List<Booking> completed = bookingRepository.findByCustomerId(customerId).stream()
                 .filter(b -> b.getStatus() == BookingStatus.COMPLETED)
                 .collect(Collectors.toList());
@@ -131,33 +129,20 @@ public class BookingService {
             return List.of();
         }
 
-        boolean viewerPremium = isPremium(callerId);
         Map<Long, String> artistNameCache = new HashMap<>();
 
         return completed.stream()
                 .map(b -> CompletedTattooDto.builder()
                         .bookingId(b.getId())
                         .artistId(b.getArtistId())
-                        .artistName(resolveArtistName(b.getArtistId(), viewerPremium, artistNameCache))
+                        .artistName(resolveArtistName(b.getArtistId(), artistNameCache))
                         .description(b.getNotes())
                         .bookingDate(b.getBookingDate())
                         .build())
                 .collect(Collectors.toList());
     }
 
-    private boolean isPremium(Long callerId) {
-        try {
-            InternalUserSummaryDto viewer = authServiceClient.getUserSummary(callerId);
-            return viewer != null && viewer.isPremium();
-        } catch (Exception ex) {
-            // Fail closed: if auth-service is unreachable, treat the viewer as non-premium
-            // rather than accidentally leaking full names.
-            log.error("İstifadəçinin premium statusu yoxlanılmadı (callerId={}): {}", callerId, ex.getMessage(), ex);
-            return false;
-        }
-    }
-
-    private String resolveArtistName(Long artistId, boolean viewerPremium, Map<Long, String> cache) {
+    private String resolveArtistName(Long artistId, Map<Long, String> cache) {
         String fullName = cache.computeIfAbsent(artistId, id -> {
             try {
                 InternalUserSummaryDto artist = authServiceClient.getUserSummary(id);
@@ -167,21 +152,7 @@ public class BookingService {
                 return null;
             }
         });
-        if (fullName == null || fullName.isBlank()) {
-            return "Usta";
-        }
-        return viewerPremium ? fullName : initialsOf(fullName);
-    }
-
-    private String initialsOf(String fullName) {
-        String[] parts = fullName.trim().split("\\s+");
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (!part.isEmpty()) {
-                sb.append(Character.toUpperCase(part.charAt(0)));
-            }
-        }
-        return sb.length() > 0 ? sb.toString() : "Usta";
+        return (fullName == null || fullName.isBlank()) ? "Usta" : fullName;
     }
 
     private BookingResponse mapToResponse(Booking booking) {
