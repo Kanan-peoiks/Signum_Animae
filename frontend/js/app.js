@@ -15,6 +15,7 @@ const NAV = {
     { key: 'orders',    ico: '❖', label: 'Sifarişlər' },
     { key: 'chats',     ico: '☾', label: 'Söhbətlər' },
     { key: 'reviews',   ico: '✧', label: 'Rəylərim' },
+    { key: 'availability', ico: '◷', label: 'Təqvim' },
     { key: 'analytics', ico: '◎', label: 'Analitika' },
     { key: 'ai',        ico: '◈', label: 'AI Studiya' },
     { key: 'notifs',    ico: '✉', label: 'Bildirişlər' },
@@ -79,6 +80,7 @@ const App = {
       orders:   () => this.pageOrders(host),
       chats:    () => ChatModule.renderPage(host),
       reviews:  () => this.pageReviews(host),
+      availability: () => this.pageAvailability(host),
       analytics: () => this.pageAnalytics(host),
       ai:       () => this.pageAi(host),
       notifs:   () => this.pageNotifs(host),
@@ -188,11 +190,12 @@ const App = {
      ============================================================ */
   async pageArtist(host, artistUserId) {
     host.innerHTML = spinner();
-    let artist, reviews = [];
+    let artist, reviews = [], slots = [];
     try {
       // Bu sorğu həm də Redis-də baxış sayğacını artırır (populyarlıq üçün)
       artist = await Api.artists.byUserId(artistUserId);
       reviews = await Api.reviews.forArtist(artistUserId).catch(() => []);
+      slots = await Api.availability.publicSlots(artistUserId).catch(() => []);
     } catch (err) {
       host.innerHTML = pageHead('Usta') + emptyState(err.message, '!');
       return;
@@ -217,6 +220,18 @@ const App = {
           : '') +
         (artist.styles ? '<div style="margin-top:18px">' + styleChips(artist.styles) + '</div>' : '') +
       '</div>' +
+      (slots.length
+        ? '<div class="section-title">Uyğun vaxtlar</div>' +
+          '<div class="rows" style="margin-bottom:24px">' +
+            slots.map(s =>
+              '<div class="row-card"><div class="row-main">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+                  '<div>' + fmtDateTime(s.slotStart) + ' → ' + fmtTime(s.slotEnd) + '</div>' +
+                  '<button class="btn btn-ghost btn-sm pick-slot" data-start="' + esc(s.slotStart) + '">Bu vaxtı seç</button>' +
+                '</div>' +
+              '</div></div>').join('') +
+          '</div>'
+        : '') +
       '<div class="section-title">Rəylər (' + reviews.length + ')</div>' +
       '<div class="rows">' +
         (reviews.length
@@ -237,12 +252,15 @@ const App = {
 
     $('#backBtn').addEventListener('click', () => this.nav('discover'));
     $('#bookBtn').addEventListener('click', () => this.promptBooking(artist));
+    $$('.pick-slot', host).forEach(btn => {
+      btn.addEventListener('click', () => this.promptBooking(artist, btn.dataset.start));
+    });
   },
 
   /* ---------- yeni sifariş ---------- */
-  promptBooking(artist) {
-    const soon = new Date(Date.now() + 86400000);
-    const local = new Date(soon.getTime() - soon.getTimezoneOffset() * 60000)
+  promptBooking(artist, presetDate) {
+    const base = presetDate ? new Date(presetDate) : new Date(Date.now() + 86400000);
+    const local = new Date(base.getTime() - base.getTimezoneOffset() * 60000)
                     .toISOString().slice(0, 16);
 
     openModal('Sifariş: ' + (artist.fullName || ''),
@@ -650,6 +668,104 @@ const App = {
         tile(oStats ? oStats.rejected : '—', 'Rədd edilən') +
         tile(acceptancePct, 'Qəbul nisbəti') +
       '</div>';
+  },
+
+  /* ============================================================
+     TƏQVİM (rəssam) - uğun və dolu pəncərələri idarə etmək
+     ============================================================ */
+  async pageAvailability(host) {
+    host.innerHTML = pageHead('Təqvim', 'Uğun vaxt pəncərələrini əlavə et və idarə et') + spinner();
+    let slots;
+    try {
+      slots = await Api.availability.forArtist(Session.userId);
+    } catch (err) {
+      host.innerHTML = pageHead('Təqvim') + emptyState(err.message, '!');
+      return;
+    }
+
+    const startDefault = new Date(Date.now() + 86400000);
+    startDefault.setMinutes(0, 0, 0);
+    const endDefault = new Date(startDefault.getTime() + 3600000);
+    const toLocal = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+    host.innerHTML = pageHead('Təqvim', 'Uğun vaxt pəncərələrini əlavə et və idarə et') +
+      '<div class="card card-pad" style="margin-bottom:24px">' +
+        '<div class="field-row">' +
+          '<label class="field"><span>Başlanğıc</span>' +
+            '<input type="datetime-local" id="slotStart" value="' + toLocal(startDefault) + '"></label>' +
+          '<label class="field"><span>Bitmə</span>' +
+            '<input type="datetime-local" id="slotEnd" value="' + toLocal(endDefault) + '"></label>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm" id="addSlotBtn" style="margin-top:14px">Pəncərə əlavə et</button>' +
+      '</div>' +
+      '<div class="section-title" style="margin-top:0">Pəncərələr (' + slots.length + ')</div>' +
+      '<div class="rows">' +
+        (slots.length
+          ? slots.map(s =>
+              '<div class="row-card"><div class="row-main">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+                  '<div>' + fmtDateTime(s.slotStart) + ' → ' + fmtTime(s.slotEnd) + '</div>' +
+                  '<span style="font-size:12px;padding:3px 10px;border-radius:20px;' +
+                    (s.booked
+                      ? 'background:rgba(200,60,60,.12);color:#a83232'
+                      : 'background:rgba(60,160,90,.12);color:#2f8f52') + '">' +
+                    (s.booked ? 'Dolu' : 'Boş') +
+                  '</span>' +
+                '</div>' +
+                '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">' +
+                  '<button class="btn btn-ghost btn-sm toggle-slot" data-id="' + s.id + '" data-booked="' + s.booked + '">' +
+                    (s.booked ? 'Boş kimi işarələ' : 'Dolu kimi işarələ') +
+                  '</button>' +
+                  '<button class="btn btn-ghost btn-sm delete-slot" data-id="' + s.id + '">Sil</button>' +
+                '</div>' +
+              '</div></div>').join('')
+          : emptyState('Hələ uğunluq pəncərəsi əlavə etməmisən.', '◷')) +
+      '</div>';
+
+    $('#addSlotBtn').addEventListener('click', async () => {
+      const startVal = $('#slotStart').value;
+      const endVal = $('#slotEnd').value;
+      if (!startVal || !endVal) { toastErr('Başlanğıc və bitmə vaxtını seç.'); return; }
+      const done = withBusy($('#addSlotBtn'), 'Əlavə edilir');
+      try {
+        await Api.availability.add({
+          artistId: Session.userId,
+          slotStart: startVal.length === 16 ? startVal + ':00' : startVal,
+          slotEnd: endVal.length === 16 ? endVal + ':00' : endVal
+        });
+        toastOk('Pəncərə əlavə edildi.');
+        this.pageAvailability(host);
+      } catch (err) {
+        toastErr(err.message);
+        done();
+      }
+    });
+
+    $$('.toggle-slot', host).forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id);
+        const newBooked = btn.dataset.booked !== 'true';
+        try {
+          await Api.availability.setBooked(id, Session.userId, newBooked);
+          this.pageAvailability(host);
+        } catch (err) {
+          toastErr(err.message);
+        }
+      });
+    });
+
+    $$('.delete-slot', host).forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.dataset.id);
+        try {
+          await Api.availability.remove(id, Session.userId);
+          toastOk('Pəncərə silindi.');
+          this.pageAvailability(host);
+        } catch (err) {
+          toastErr(err.message);
+        }
+      });
+    });
   },
 
   /* ============================================================

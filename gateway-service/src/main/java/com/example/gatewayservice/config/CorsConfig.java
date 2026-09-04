@@ -21,8 +21,9 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOriginPatterns(allowedOrigins.split(","))
                 // Only the verbs this API actually exposes - previously "*", which also
-                // allowed PUT/DELETE/TRACE/etc. that no endpoint here uses.
-                .allowedMethods("GET", "POST", "PATCH", "OPTIONS")
+                // allowed PUT/TRACE/etc. that no endpoint here uses. DELETE added for the
+                // availability-slot cleanup endpoint (booking-service).
+                .allowedMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")
                 // Only what a request here actually needs, instead of "*".
                 .allowedHeaders("Authorization", "Content-Type")
                 .maxAge(3600);

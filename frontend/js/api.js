@@ -102,9 +102,10 @@ async function request(method, path, body, opts = {}) {
   return data;
 }
 
-const GET   = (p, o)    => request('GET', p, undefined, o);
-const POST  = (p, b, o) => request('POST', p, b, o);
-const PATCH = (p, b, o) => request('PATCH', p, b, o);
+const GET    = (p, o)    => request('GET', p, undefined, o);
+const POST   = (p, b, o) => request('POST', p, b, o);
+const PATCH  = (p, b, o) => request('PATCH', p, b, o);
+const DELETE = (p, o)    => request('DELETE', p, undefined, o);
 
 /* ============================================================
    API — servis-servis qruplaşdırılmış
@@ -154,6 +155,16 @@ const Api = {
        booking-service BookingService.getCompletedSummaryForCustomer). */
     completedSummary: (customerId) => GET('/api/v1/bookings/customer/' + customerId + '/completed-summary'),
     artistStats: (artistId) => GET('/api/v1/bookings/artist/' + artistId + '/stats')
+  },
+
+  /* ---- booking-service: uyğunluq təqvimi ---- */
+  availability: {
+    add:          (payload) => POST('/api/v1/availability', payload),
+    forArtist:    (artistId) => GET('/api/v1/availability/artist/' + artistId),
+    publicSlots:  (artistId) => GET('/api/v1/availability/artist/' + artistId + '/public'),
+    setBooked:    (id, artistId, booked) =>
+                  PATCH('/api/v1/availability/' + id + '/booked?artistId=' + artistId + '&booked=' + booked),
+    remove:       (id, artistId) => DELETE('/api/v1/availability/' + id + '?artistId=' + artistId)
   },
 
   /* ---- booking-service: rəylər ---- */

@@ -36,6 +36,16 @@ public class GlobalExceptionHandler {
         return build(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(AvailabilitySlotNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAvailabilitySlotNotFound(AvailabilitySlotNotFoundException ex) {
+        return build(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(AvailabilityOwnershipException.class)
+    public ResponseEntity<ErrorResponse> handleAvailabilityOwnership(AvailabilityOwnershipException ex) {
+        return build(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return build(ex.getMessage(), HttpStatus.BAD_REQUEST);
