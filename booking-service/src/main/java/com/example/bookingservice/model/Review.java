@@ -35,6 +35,12 @@ public class Review {
 
     private LocalDateTime createdAt;
 
+    /** Ustanın rəyə ictimai cavabı - əvvəlcə boşdur (null), sonradan əlavə/redaktə oluna bilər. */
+    @Column(columnDefinition = "TEXT")
+    private String artistReply;
+
+    private LocalDateTime repliedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

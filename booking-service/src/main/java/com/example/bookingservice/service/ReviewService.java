@@ -2,11 +2,13 @@ package com.example.bookingservice.service;
 
 import com.example.bookingservice.client.AuthServiceClient;
 import com.example.bookingservice.client.dto.UpdateArtistRatingRequest;
+import com.example.bookingservice.dto.ReviewReplyRequest;
 import com.example.bookingservice.dto.ReviewRequest;
 import com.example.bookingservice.dto.ReviewResponse;
 import com.example.bookingservice.exception.BookingNotCompletedException;
 import com.example.bookingservice.exception.BookingNotFoundException;
 import com.example.bookingservice.exception.ReviewAlreadyExistsException;
+import com.example.bookingservice.exception.ReviewNotFoundException;
 import com.example.bookingservice.exception.ReviewOwnershipException;
 import com.example.bookingservice.model.Booking;
 import com.example.bookingservice.model.BookingStatus;
@@ -18,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -83,6 +86,23 @@ public class ReviewService {
                 .collect(Collectors.toList());
     }
 
+    /** Usta öz rəyinə ictimai cavab yazır/redaktə edir - artistId review-un öz artistId-si
+     *  ilə üst-üstə düşməlidir, əks halda başqa ustanın adından cavab yazıla bilərdi. */
+    @Transactional
+    public ReviewResponse addReply(Long reviewId, ReviewReplyRequest request) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewNotFoundException("Rəy tapılmadı! ID: " + reviewId));
+
+        if (!review.getArtistId().equals(request.getArtistId())) {
+            throw new ReviewOwnershipException("Bu rəy sizə aid deyil, cavab yaza bilməzsiniz.");
+        }
+
+        review.setArtistReply(request.getReply());
+        review.setRepliedAt(LocalDateTime.now());
+        Review saved = reviewRepository.save(review);
+        return mapToResponse(saved);
+    }
+
     private ReviewResponse mapToResponse(Review review) {
         return ReviewResponse.builder()
                 .id(review.getId())
@@ -92,6 +112,8 @@ public class ReviewService {
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .createdAt(review.getCreatedAt())
+                .artistReply(review.getArtistReply())
+                .repliedAt(review.getRepliedAt())
                 .build();
     }
 }

@@ -130,7 +130,8 @@ const Api = {
     popular: (limit = 8) => GET('/api/v1/artists/public/popular?limit=' + limit),
     // {userId} — rəssamın USER id-si (bütün sistemdə "artistId" elə budur)
     byUserId: (userId) => GET('/api/v1/artists/public/' + userId),
-    updateProfile: (userId, payload) => PATCH('/api/v1/artists/' + userId, payload)
+    updateProfile: (userId, payload) => PATCH('/api/v1/artists/' + userId, payload),
+    viewCount: (userId) => GET('/api/v1/artists/' + userId + '/views')
   },
 
   /* ---- auth-service: istifadəçi hesabı ---- */
@@ -149,13 +150,15 @@ const Api = {
     /* Başqasının profilindəki "keçmiş tatuajlar" siyahısı - server artıq qiymət/qeyd
        kimi məxfi sahələri kəsir və usta adını premium-a görə özü maskalayır (bax
        booking-service BookingService.getCompletedSummaryForCustomer). */
-    completedSummary: (customerId) => GET('/api/v1/bookings/customer/' + customerId + '/completed-summary')
+    completedSummary: (customerId) => GET('/api/v1/bookings/customer/' + customerId + '/completed-summary'),
+    artistStats: (artistId) => GET('/api/v1/bookings/artist/' + artistId + '/stats')
   },
 
   /* ---- booking-service: rəylər ---- */
   reviews: {
     create:    (payload) => POST('/api/v1/reviews', payload),
-    forArtist: (artistId) => GET('/api/v1/reviews/artist/' + artistId)
+    forArtist: (artistId) => GET('/api/v1/reviews/artist/' + artistId),
+    reply:     (reviewId, payload) => PATCH('/api/v1/reviews/' + reviewId + '/reply', payload)
   },
 
   /* ---- chat-service ---- */
@@ -171,7 +174,8 @@ const Api = {
     respondToOffer:  (roomId, messageId, userId, accept) =>
                       PATCH('/api/v1/chat/rooms/' + roomId + '/messages/' + messageId + '/offer', { userId, accept }),
     presence:        (userId) => GET('/api/v1/chat/presence/' + userId),
-    unreadCount:     (userId) => GET('/api/v1/chat/unread-count/' + userId)
+    unreadCount:     (userId) => GET('/api/v1/chat/unread-count/' + userId),
+    offerStats:      (artistId) => GET('/api/v1/chat/rooms/artist/' + artistId + '/offer-stats')
   },
 
   /* ---- ai-service ---- */

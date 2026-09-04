@@ -1,5 +1,6 @@
 package com.example.bookingservice.controller;
 
+import com.example.bookingservice.dto.ReviewReplyRequest;
 import com.example.bookingservice.dto.ReviewRequest;
 import com.example.bookingservice.dto.ReviewResponse;
 import com.example.bookingservice.service.ReviewService;
@@ -25,5 +26,11 @@ public class ReviewController {
     @GetMapping("/artist/{artistId}")
     public ResponseEntity<List<ReviewResponse>> getReviewsForArtist(@PathVariable Long artistId) {
         return ResponseEntity.ok(reviewService.getReviewsForArtist(artistId));
+    }
+
+    /** Usta öz rəyinə ictimai cavab yazır/redaktə edir. */
+    @PatchMapping("/{id}/reply")
+    public ResponseEntity<ReviewResponse> replyToReview(@PathVariable Long id, @Valid @RequestBody ReviewReplyRequest request) {
+        return ResponseEntity.ok(reviewService.addReply(id, request));
     }
 }

@@ -15,6 +15,7 @@ const NAV = {
     { key: 'orders',    ico: '❖', label: 'Sifarişlər' },
     { key: 'chats',     ico: '☾', label: 'Söhbətlər' },
     { key: 'reviews',   ico: '✧', label: 'Rəylərim' },
+    { key: 'analytics', ico: '◎', label: 'Analitika' },
     { key: 'ai',        ico: '◈', label: 'AI Studiya' },
     { key: 'notifs',    ico: '✉', label: 'Bildirişlər' },
     { key: 'profile',   ico: '☍', label: 'Profilim' }
@@ -78,6 +79,7 @@ const App = {
       orders:   () => this.pageOrders(host),
       chats:    () => ChatModule.renderPage(host),
       reviews:  () => this.pageReviews(host),
+      analytics: () => this.pageAnalytics(host),
       ai:       () => this.pageAi(host),
       notifs:   () => this.pageNotifs(host),
       profile:  () => this.pageProfile(host)
@@ -208,6 +210,12 @@ const App = {
                 '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
                   esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
                 '<div class="row-meta">' + esc(fmtDay(r.createdAt)) + '</div>' +
+                (r.artistReply
+                  ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
+                      'border-radius:8px;font-size:13px">' +
+                      '<b>Ustanın cavabı:</b> ' + esc(r.artistReply) +
+                    '</div>'
+                  : '') +
               '</div></div>').join('')
           : emptyState('Bu usta haqqında hələ rəy yoxdur.', '✧')) +
       '</div>';
@@ -541,8 +549,91 @@ const App = {
                 '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
                   esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
                 '<div class="row-meta">' + esc(fmtDay(r.createdAt)) + '</div>' +
+                (r.artistReply
+                  ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
+                      'border-radius:8px;font-size:13px">' +
+                      '<b>Sənin cavabın:</b> ' + esc(r.artistReply) +
+                    '</div>'
+                  : '<button class="btn btn-ghost btn-sm reply-btn" data-id="' + r.id + '" style="margin-top:10px">Cavab yaz</button>') +
               '</div></div>').join('')
           : emptyState('Hələ rəy yoxdur. Tamamlanmış sifarişdən sonra müştəri rəy yaza bilər.', '✧')) +
+      '</div>';
+
+    $$('.reply-btn', host).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reviewId = Number(btn.dataset.id);
+        openModal('Rəyə cavab yaz',
+          '<label class="field"><span>Cavabın</span>' +
+            '<textarea id="replyText" placeholder="Təşəkkür edirik, yenidən gözləyirik…"></textarea></label>',
+          {
+            okText: 'Göndər',
+            onOk: async (ov, close, okBtn) => {
+              const text = $('#replyText', ov).value.trim();
+              if (!text) { toastErr('Cavab boş ola bilməz.'); return; }
+              const done = withBusy(okBtn, 'Göndərilir');
+              try {
+                await Api.reviews.reply(reviewId, { artistId: Session.userId, reply: text });
+                close();
+                toastOk('Cavab əlavə edildi.');
+                this.pageReviews(host);
+              } catch (err) {
+                toastErr(err.message);
+                done();
+              }
+            }
+          });
+      });
+    });
+  },
+
+  /* ============================================================
+     ANALİTİKA (rəssam)
+     ============================================================ */
+  async pageAnalytics(host) {
+    host.innerHTML = pageHead('Analitika', 'Sifarişlərin, qazancın və təkliflərin xülasəsi') + spinner();
+
+    let bStats = null, oStats = null, views = 0;
+    try {
+      [bStats, oStats, views] = await Promise.all([
+        Api.bookings.artistStats(Session.userId).catch(() => null),
+        Api.chat.offerStats(Session.userId).catch(() => null),
+        Api.artists.viewCount(Session.userId).catch(() => 0)
+      ]);
+    } catch (err) {
+      host.innerHTML = pageHead('Analitika') + emptyState(err.message, '!');
+      return;
+    }
+
+    const tile = (value, label) =>
+      '<div class="card card-pad" style="text-align:center;flex:1;min-width:140px">' +
+        '<div style="font-family:var(--f-display);font-size:32px;color:var(--brass)">' + esc(value) + '</div>' +
+        '<div class="row-meta" style="margin-top:6px">' + esc(label) + '</div>' +
+      '</div>';
+
+    const acceptancePct = oStats && oStats.acceptanceRate != null
+      ? Math.round(oStats.acceptanceRate * 100) + '%'
+      : '—';
+
+    host.innerHTML = pageHead('Analitika', 'Sifarişlərin, qazancın və təkliflərin xülasəsi') +
+      '<div class="section-title" style="margin-top:0">Sifarişlər</div>' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px">' +
+        tile(bStats ? bStats.totalBookings : '—', 'Ümumi sifariş') +
+        tile(bStats ? bStats.pendingBookings : '—', 'Gözləyən') +
+        tile(bStats ? bStats.confirmedBookings : '—', 'Təsdiqlənmiş') +
+        tile(bStats ? bStats.completedBookings : '—', 'Tamamlanmış') +
+        tile(bStats ? bStats.cancelledBookings : '—', 'Ləğv edilmiş') +
+      '</div>' +
+      '<div class="section-title">Qazanc</div>' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px">' +
+        tile(bStats ? (Number(bStats.totalEarnings) || 0).toFixed(0) + ' AZN' : '—', 'Tamamlanmış sifarişlərdən') +
+        tile(views, 'Profil baxışı') +
+      '</div>' +
+      '<div class="section-title">Qiymət təklifləri</div>' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap">' +
+        tile(oStats ? oStats.totalOffers : '—', 'Göndərilən təklif') +
+        tile(oStats ? oStats.accepted : '—', 'Qəbul edilən') +
+        tile(oStats ? oStats.rejected : '—', 'Rədd edilən') +
+        tile(acceptancePct, 'Qəbul nisbəti') +
       '</div>';
   },
 

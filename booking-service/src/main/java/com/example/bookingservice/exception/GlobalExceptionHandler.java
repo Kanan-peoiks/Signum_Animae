@@ -31,6 +31,11 @@ public class GlobalExceptionHandler {
         return build(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(ReviewNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReviewNotFound(ReviewNotFoundException ex) {
+        return build(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         return build(ex.getMessage(), HttpStatus.BAD_REQUEST);
