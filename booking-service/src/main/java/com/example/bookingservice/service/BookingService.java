@@ -4,6 +4,7 @@ import com.example.bookingservice.client.AuthServiceClient;
 import com.example.bookingservice.client.dto.InternalUserSummaryDto;
 import com.example.bookingservice.dto.BookingRequest;
 import com.example.bookingservice.dto.BookingResponse;
+import com.example.bookingservice.dto.ArtistStatsDto;
 import com.example.bookingservice.dto.CompletedTattooDto;
 import com.example.bookingservice.exception.BookingNotFoundException;
 import com.example.bookingservice.model.Booking;
@@ -59,6 +60,36 @@ public class BookingService {
         return bookingRepository.findByArtistId(artistId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    /** Usta analitika paneli üçün - sırf oxu, heç bir mövcud axını dəyişmir. */
+    public ArtistStatsDto getArtistStats(Long artistId) {
+        List<Booking> bookings = bookingRepository.findByArtistId(artistId);
+
+        long pending = 0, confirmed = 0, completed = 0, cancelled = 0;
+        double earnings = 0;
+        for (Booking b : bookings) {
+            switch (b.getStatus()) {
+                case PENDING -> pending++;
+                case CONFIRMED -> confirmed++;
+                case COMPLETED -> {
+                    completed++;
+                    if (b.getEstimatedPrice() != null) {
+                        earnings += b.getEstimatedPrice();
+                    }
+                }
+                case CANCELLED -> cancelled++;
+            }
+        }
+
+        return ArtistStatsDto.builder()
+                .totalBookings(bookings.size())
+                .pendingBookings(pending)
+                .confirmedBookings(confirmed)
+                .completedBookings(completed)
+                .cancelledBookings(cancelled)
+                .totalEarnings(earnings)
+                .build();
     }
 
     public BookingResponse updateBookingStatus(Long id, BookingStatus newStatus) {

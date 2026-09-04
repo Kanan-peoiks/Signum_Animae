@@ -5,6 +5,7 @@ import com.example.chatservice.client.dto.BookingStatusDto;
 import com.example.chatservice.client.dto.UpdateBookingPriceRequest;
 import com.example.chatservice.dto.ChatMessageRequest;
 import com.example.chatservice.dto.ChatMessageResponse;
+import com.example.chatservice.dto.OfferStatsResponse;
 import com.example.chatservice.exception.BookingCancelledException;
 import com.example.chatservice.exception.InvalidOfferException;
 import com.example.chatservice.exception.NotRoomParticipantException;
@@ -127,6 +128,37 @@ public class ChatMessageService {
         return chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId).stream()
                 .map(ChatMessageResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /** Usta analitika paneli üçün - bu ustanın göndərdiyi bütün OFFER-lərin
+     *  qəbul/rədd nisbəti. Sırf oxu, mövcud heç bir axını dəyişmir. */
+    public OfferStatsResponse getOfferStatsForArtist(Long artistId) {
+        List<Long> roomIds = chatRoomService.getRoomsForArtist(artistId).stream()
+                .map(r -> r.getId())
+                .collect(Collectors.toList());
+
+        if (roomIds.isEmpty()) {
+            return OfferStatsResponse.builder()
+                    .totalOffers(0).accepted(0).rejected(0).pending(0).acceptanceRate(0)
+                    .build();
+        }
+
+        List<ChatMessage> offers = chatMessageRepository
+                .findByChatRoomIdInAndSenderIdAndMessageType(roomIds, artistId, MessageType.OFFER);
+
+        long accepted = offers.stream().filter(m -> m.getOfferStatus() == OfferStatus.ACCEPTED).count();
+        long rejected = offers.stream().filter(m -> m.getOfferStatus() == OfferStatus.REJECTED).count();
+        long pending = offers.stream().filter(m -> m.getOfferStatus() == OfferStatus.PENDING).count();
+        long decided = accepted + rejected;
+        double rate = decided == 0 ? 0.0 : (double) accepted / decided;
+
+        return OfferStatsResponse.builder()
+                .totalOffers(offers.size())
+                .accepted(accepted)
+                .rejected(rejected)
+                .pending(pending)
+                .acceptanceRate(rate)
+                .build();
     }
 
     public void markAsRead(Long roomId, Long readerId) {

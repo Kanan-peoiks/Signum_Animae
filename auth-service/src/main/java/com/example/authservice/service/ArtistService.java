@@ -64,6 +64,11 @@ public class ArtistService {
         return mapToDto(profile);
     }
 
+    /** Usta analitika paneli üçün - profilin neçə dəfə baxıldığı (Redis-dən). */
+    public long getViewCount(Long artistUserId) {
+        return artistPopularityService.getViewCount(artistUserId);
+    }
+
     public List<ArtistProfileDto> getPopularArtists(int limit) {
         Set<Long> artistUserIds = artistPopularityService.getPopularArtistIds(limit);
         List<ArtistProfileDto> result = new ArrayList<>();

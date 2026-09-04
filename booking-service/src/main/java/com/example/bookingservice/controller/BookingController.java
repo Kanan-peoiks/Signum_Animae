@@ -2,6 +2,7 @@ package com.example.bookingservice.controller;
 
 import com.example.bookingservice.dto.BookingRequest;
 import com.example.bookingservice.dto.BookingResponse;
+import com.example.bookingservice.dto.ArtistStatsDto;
 import com.example.bookingservice.dto.CompletedTattooDto;
 import com.example.bookingservice.dto.UpdateBookingPriceRequest;
 import com.example.bookingservice.dto.UpdateStatusRequest;
@@ -44,6 +45,12 @@ public class BookingController {
     @GetMapping("/artist/{artistId}")
     public ResponseEntity<List<BookingResponse>> getBookingsByArtist(@PathVariable Long artistId) {
         return ResponseEntity.ok(bookingService.getBookingsByArtist(artistId));
+    }
+
+    /** Usta analitika paneli - sifariş sayları və qazanc. */
+    @GetMapping("/artist/{artistId}/stats")
+    public ResponseEntity<ArtistStatsDto> getArtistStats(@PathVariable Long artistId) {
+        return ResponseEntity.ok(bookingService.getArtistStats(artistId));
     }
 
     /**

@@ -2,6 +2,8 @@ package com.example.chatservice.controller;
 
 import com.example.chatservice.dto.ChatRoomRequest;
 import com.example.chatservice.dto.ChatRoomResponse;
+import com.example.chatservice.dto.OfferStatsResponse;
+import com.example.chatservice.service.ChatMessageService;
 import com.example.chatservice.service.ChatRoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import java.util.List;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+    private final ChatMessageService chatMessageService;
 
     /** Get-or-create: idempotent by bookingId, safe to call every time a chat screen
      *  opens. The caller must actually be one of the two parties named in the request -
@@ -38,5 +41,11 @@ public class ChatRoomController {
     @GetMapping("/artist/{artistId}")
     public ResponseEntity<List<ChatRoomResponse>> getRoomsForArtist(@PathVariable Long artistId) {
         return ResponseEntity.ok(chatRoomService.getRoomsForArtist(artistId));
+    }
+
+    /** Usta analitika paneli - göndərdiyi qiymət təkliflərinin qəbul/rədd nisbəti. */
+    @GetMapping("/artist/{artistId}/offer-stats")
+    public ResponseEntity<OfferStatsResponse> getOfferStats(@PathVariable Long artistId) {
+        return ResponseEntity.ok(chatMessageService.getOfferStatsForArtist(artistId));
     }
 }

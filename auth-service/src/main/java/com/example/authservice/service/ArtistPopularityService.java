@@ -35,6 +35,16 @@ public class ArtistPopularityService {
         }
     }
 
+    /** Usta analitika paneli üçün - sırf oxu, Redis əlçatmaz olsa 0 qaytarır (heç vaxt xəta atmır). */
+    public long getViewCount(Long artistProfileId) {
+        try {
+            String value = redisTemplate.opsForValue().get(VIEW_COUNTER_PREFIX + artistProfileId);
+            return value == null ? 0L : Long.parseLong(value);
+        } catch (Exception ex) {
+            return 0L;
+        }
+    }
+
     public Set<Long> getPopularArtistIds(int limit) {
         try {
             Set<String> ids = redisTemplate.opsForZSet().reverseRange(POPULAR_ARTISTS_KEY, 0, limit - 1);

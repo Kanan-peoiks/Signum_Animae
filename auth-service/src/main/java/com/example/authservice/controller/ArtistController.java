@@ -51,6 +51,12 @@ public class ArtistController {
      * X-Internal-Token), not a user identity - there is no end-user token in a
      * server-to-server call.
      */
+    /** Usta analitika paneli - profilin neçə dəfə baxıldığı. */
+    @GetMapping("/{userId}/views")
+    public ResponseEntity<Long> getViewCount(@PathVariable Long userId) {
+        return ResponseEntity.ok(artistService.getViewCount(userId));
+    }
+
     @PatchMapping("/internal/{artistId}/rating")
     public ResponseEntity<Void> updateRating(@PathVariable Long artistId, @Valid @RequestBody UpdateArtistRatingRequest request) {
         artistService.updateRatingAfterReview(artistId, request.getRating());
