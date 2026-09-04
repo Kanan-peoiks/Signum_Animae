@@ -29,3 +29,6 @@ spring:
 services:
   booking-service:
     url: http://localhost:8089
+
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:local-dev-internal-token}
