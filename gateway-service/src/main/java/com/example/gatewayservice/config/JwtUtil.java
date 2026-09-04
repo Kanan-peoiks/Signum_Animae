@@ -23,8 +23,17 @@ public class JwtUtil {
         }
     }
 
+    /** The token's subject - auth-service sets this to the user's numeric id (see
+     *  authservice.security.JwtUtil#generateToken), NOT an email/username despite the name. */
     public String getUsername(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build()
                 .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    /** The "role" claim auth-service embeds at login (CUSTOMER/ARTIST). Used to set the
+     *  trusted X-User-Role header downstream - see JwtAuthenticationFilter. */
+    public String getRole(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("role", String.class);
     }
 }
