@@ -5,7 +5,7 @@
 <h1 align="center">SIGNUM ANIMAE</h1>
 
 <p align="center">
-  <em>Tatuaj ustaları ilə müştəriləri birləşdirən mikroservis əsaslı bazar platforması</em>
+  <em>A microservices-based marketplace connecting tattoo artists with customers</em>
 </p>
 
 <p align="center">
@@ -20,80 +20,80 @@
 
 ---
 
-## Bu layihə nədir?
+## What is this project?
 
-**SIGNUM ANIMAE**, müştərilərin tatuaj ustası tapıb sifariş verdiyi, canlı yazışdığı, qiymət danışdığı və nəticədə rəy yazdığı; ustaların isə sifarişlərini idarə etdiyi, profilini qurduğu və öz statistikasını izlədiyi bir bazar tətbiqidir. Üstəlik, hələ heç kimlə əlaqə saxlamadan **AI Studiya**da tatuaj ideyası haqqında məsləhət almaq və ya bir eskizi süni intellektə analiz etdirmək mümkündür.
+**SIGNUM ANIMAE** is a marketplace application where customers find a tattoo artist, place a booking, chat live, negotiate a price, and leave a review afterwards — while artists manage their incoming bookings, build out their profile, and track their own stats. On top of that, an **AI Studio** lets anyone get a structured tattoo-concept consultation, or have an uploaded sketch analyzed, without contacting anyone.
 
-Backend altı ayrı Spring Boot mikroservisindən ibarətdir, frontend isə heç bir framework olmadan, saf **HTML / CSS / JavaScript** ilə yazılıb.
+The backend is made up of six independent Spring Boot microservices, and the frontend is written in plain **HTML / CSS / JavaScript** with no framework at all.
 
-## İçindəkilər
+## Table of contents
 
-- [Özəlliklər](#özəlliklər)
-- [Memarlıq](#memarlıq)
-- [Servislər](#servislər)
-- [Texnologiyalar](#texnologiyalar)
-- [İşə salmaq](#i̇şə-salmaq)
-- [Layihə strukturu](#layihə-strukturu)
-- [Testlər](#testlər)
-- [Bilinən məhdudiyyətlər](#bilinən-məhdudiyyətlər)
-- [Gələcək planlar](#gələcək-planlar)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Services](#services)
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [Project structure](#project-structure)
+- [Tests](#tests)
+- [Known limitations](#known-limitations)
+- [Roadmap](#roadmap)
 
-## Özəlliklər
+## Features
 
-### 👤 Hesab və profil
-- E-poçt/şifrə ilə qeydiyyat və JWT əsaslı giriş, rol seçimi (müştəri / usta)
-- Hər iki rol üçün profil idarəetməsi (ad, şəhər, avatar); usta üçün əlavə olaraq bio, təcrübə ili və stillər
+### 👤 Accounts & profiles
+- Email/password registration and JWT-based login, with a role choice (customer / artist)
+- Profile management for both roles (name, city, avatar); artists additionally manage bio, years of experience and styles
 
-### 🔍 Usta kəşfi
-- Şəhər, stil, minimum reytinq və minimum təcrübəyə görə süzgəclənən axtarış
-- Nəticələri reytinqə və ya təcrübəyə görə sıralamaq
-- Redis-dəki profil-baxış sayğacına əsaslanan "populyar ustalar" siyahısı
+### 🔍 Artist discovery
+- Search filtered by city, style, minimum rating and minimum experience
+- Sort results by rating or by experience
+- A "popular artists" list driven by a Redis-backed profile-view counter
 
-### 📅 Sifariş və təqvim
-- Tarix, qeyd, təxmini büdcə və eskiz linki ilə sifariş yaratmaq
-- Sifariş statusunun idarə edilməsi (gözləyir → təsdiqlənib → tamamlanıb / ləğv edilib)
-- Ustanın öz uyğunluq təqvimini qurması; müştərinin bu boş vaxtlardan birini seçərək birbaşa sifariş verməsi
+### 📅 Bookings & availability
+- Create a booking with a date, notes, an estimated budget and a sketch link
+- Booking status lifecycle (pending → confirmed → completed / cancelled)
+- Artists can set their own availability slots; customers can pick one of those open windows straight from the artist's profile to book
 
-### 💬 Canlı söhbət
-- Hər sifariş üçün ayrıca söhbət otağı, WebSocket/STOMP ilə real-vaxt mesajlaşma
-- Qiymət təklifi (OFFER) mesaj növü — qəbul/rədd statusu ilə
-- Oxunmamış mesaj sayğacı, WebSocket kəsiləndə REST-ə keçən "fallback" rejim
+### 💬 Live chat
+- A dedicated chat room per booking, with real-time messaging over WebSocket/STOMP
+- A price-offer (OFFER) message type, with accepted/rejected status
+- Unread-message counter, and a REST fallback that keeps chat working if the WebSocket connection drops
 
-### ⭐ Rəylər
-- Yalnız tamamlanmış sifarişə rəy yazıla bilir
-- Usta rəyə ictimai cavab yaza bilir
+### ⭐ Reviews
+- A review can only be left on a completed booking
+- Artists can post a public reply to a review
 
-### 📊 Analitika
-- Usta üçün sifariş sayları (gözləyən/təsdiqlənmiş/tamamlanmış/ləğv edilmiş), tamamlanmış sifarişlərdən ümumi qazanc, profil baxış sayı və qiymət təkliflərinin qəbul nisbəti
+### 📊 Analytics
+- For artists: booking counts by status (pending/confirmed/completed/cancelled), total earnings from completed bookings, profile view count, and the acceptance rate of sent price offers
 
-### 🤖 AI Studiya
-- Mətnlə tatuaj konsepti təsvir et, Azərbaycan dilində strukturlaşdırılmış məsləhət al (konsept, yerləşmə, qiymət aralığı)
-- Bir eskiz/şəkil yüklə, süni intellektə analiz etdir
-- Bəyəndiyin nəticəni saxla və istəsən mövcud bir sifarişinə bağla
+### 🤖 AI Studio
+- Describe a tattoo concept in text and get a structured consultation (concept, placement, price range)
+- Upload a sketch/image and have it analyzed by AI
+- Save a result you like, and optionally link it to one of your existing bookings
 
-## Memarlıq
+## Architecture
 
-Bütün xarici sorğular tək bir qapıdan — **gateway-service**-dən keçir; o, JWT-ni yoxlayır və sorğunu path-ə görə düzgün servisə yönləndirir. Yeganə istisna canlı söhbətin WebSocket bağlantısıdır — brauzer bu bağlantını birbaşa chat-service-ə açır, çünki Spring Cloud Gateway-in HTTP proxy hissəsi protokol "upgrade"ini ötürə bilmir.
+Every external request goes through a single entry point — **gateway-service** — which validates the JWT and routes the request to the right service based on its path. The one exception is the live chat's WebSocket connection: the browser opens that connection directly to chat-service, because Spring Cloud Gateway's HTTP proxy layer can't forward a protocol "upgrade".
 
 ```mermaid
 flowchart TB
-    FE["Frontend<br/>(HTML/CSS/JS, statik)"]
+    FE["Frontend<br/>(HTML/CSS/JS, static)"]
 
-    FE -- "REST (JWT)" --> GW["gateway-service :8080<br/>JWT yoxlaması · CORS · yönləndirmə"]
-    FE -. "WebSocket (birbaşa)" .-> CHAT
+    FE -- "REST (JWT)" --> GW["gateway-service :8080<br/>JWT check · CORS · routing"]
+    FE -. "WebSocket (direct)" .-> CHAT
 
-    GW --> AUTH["auth-service :8081<br/>istifadəçi · usta profili"]
-    GW --> BOOK["booking-service :8089<br/>sifariş · rəy · təqvim · AI tarixçəsi"]
-    GW --> CHAT["chat-service :8083<br/>söhbət · WebSocket/STOMP"]
-    GW --> AI["ai-service :8084<br/>Gemini AI inteqrasiyası"]
-    GW --> NOTIF["notification-service :8085<br/>bildiriş · e-poçt"]
+    GW --> AUTH["auth-service :8081<br/>users · artist profiles"]
+    GW --> BOOK["booking-service :8089<br/>bookings · reviews · availability · AI history"]
+    GW --> CHAT["chat-service :8083<br/>chat · WebSocket/STOMP"]
+    GW --> AI["ai-service :8084<br/>Gemini AI integration"]
+    GW --> NOTIF["notification-service :8085<br/>notifications · email"]
 
     AUTH --> PGA[("PostgreSQL<br/>authservice")]
     BOOK --> PGB[("PostgreSQL<br/>bookingservice")]
     CHAT --> PGC[("PostgreSQL<br/>chatservice")]
     NOTIF --> PGN[("PostgreSQL<br/>notificationservice")]
 
-    AUTH -.-> REDIS[("Redis<br/>sessiya · populyarlıq")]
+    AUTH -.-> REDIS[("Redis<br/>sessions · popularity")]
     CHAT -.-> REDIS
 
     BOOK -. "Feign" .-> AUTH
@@ -102,66 +102,66 @@ flowchart TB
     AI -. "HTTPS" .-> GEMINI["Google Gemini API"]
 ```
 
-## Servislər
+## Services
 
-| Servis | Port | Baza | Məsuliyyət |
+| Service | Port | Database | Responsibility |
 |---|---|---|---|
-| **gateway-service** | 8080 | — | JWT yoxlaması, CORS, path-based yönləndirmə |
-| **auth-service** | 8081 | `signum_animae_authservice` | qeydiyyat/giriş, istifadəçi və usta profili, populyarlıq (Redis) |
-| **booking-service** | 8089 | `signum_animae_bookingservice` | sifariş, rəy, uyğunluq təqvimi, AI Studiya tarixçəsi |
-| **chat-service** | 8083 | `signum_animae_chatservice` | canlı söhbət (WebSocket/STOMP), presence (Redis) |
-| **ai-service** | 8084 | — (stateless) | Gemini AI ilə tatuaj konsepti məsləhəti və şəkil analizi |
-| **notification-service** | 8085 | `signum_animae_notificationservice` | daxili bildirişlər, e-poçt (SMTP) |
+| **gateway-service** | 8080 | — | JWT validation, CORS, path-based routing |
+| **auth-service** | 8081 | `signum_animae_authservice` | registration/login, user & artist profiles, popularity (Redis) |
+| **booking-service** | 8089 | `signum_animae_bookingservice` | bookings, reviews, availability calendar, AI Studio history |
+| **chat-service** | 8083 | `signum_animae_chatservice` | live chat (WebSocket/STOMP), presence (Redis) |
+| **ai-service** | 8084 | — (stateless) | Gemini-powered tattoo-concept consultation & image analysis |
+| **notification-service** | 8085 | `signum_animae_notificationservice` | in-app notifications, email (SMTP) |
 
-Hər servis tam müstəqil bir Gradle layihəsidir (öz `gradlew`-i ilə) — "database-per-service" prinsipinə uyğun olaraq eyni PostgreSQL instansında, amma tam ayrı adlı öz bazasına sahibdir.
+Each service is a fully independent Gradle project (with its own `gradlew`) — following a "database-per-service" approach, they share one PostgreSQL instance but each owns its own, separately named database.
 
-## Texnologiyalar
+## Tech stack
 
 **Backend:** Java 17 · Spring Boot 4 · Spring Cloud Gateway (WebMVC) · Spring Data JPA (Hibernate) · Spring Security · Spring WebSocket + STOMP · Spring Data Redis · Spring Mail · OpenFeign · PostgreSQL · Redis · JWT (jjwt) · Lombok · Gradle
 
-**Test:** JUnit 5 · Mockito · AssertJ
+**Testing:** JUnit 5 · Mockito · AssertJ
 
-**AI:** Google Gemini API (birbaşa REST inteqrasiyası, WebClient ilə)
+**AI:** Google Gemini API (direct REST integration via WebClient)
 
-**Frontend:** Saf HTML / CSS / JavaScript — heç bir framework, heç bir build addımı yoxdur
+**Frontend:** Plain HTML / CSS / JavaScript — no framework, no build step
 
-## İşə salmaq
+## Getting started
 
-**Tələb olunanlar:** JDK 17, PostgreSQL (localhost:5432), Redis (localhost:6379).
+**Prerequisites:** JDK 17, PostgreSQL (localhost:5432), Redis (localhost:6379).
 
-1. PostgreSQL-də dörd ayrı baza yarat: `signum_animae_authservice`, `signum_animae_bookingservice`, `signum_animae_chatservice`, `signum_animae_notificationservice` (cədvəllər Hibernate tərəfindən avtomatik yaradılır, əl ilə miqrasiya lazım deyil).
-2. Aşağıdakı mühit dəyişənlərini təyin et: `Username`, `Password` (Postgres), `JWT_SECRET`, `KEY` (Gemini API açarı), `MAIL_USERNAME`, `MAIL_PASSWORD` (bildiriş e-poçtu üçün). `INTERNAL_SERVICE_TOKEN` təyin olunmasa, lokal inkişaf üçün defolt dəyərlə işləyir.
-3. Hər servisi öz qovluğunda ayrıca başlat (məsələn `./gradlew bootRun`) — sıra fərq etmir, amma gateway-i ən sonda başlatmaq daha rahatdır: `auth-service` (8081), `booking-service` (8089), `chat-service` (8083), `ai-service` (8084), `notification-service` (8085), sonda `gateway-service` (8080).
-4. `frontend` qovluğunda sadə bir statik server qaldır (məsələn `python -m http.server 5500`) və brauzerdə aç. Ətraflı: [`frontend/README.md`](frontend/README.md).
+1. Create four separate PostgreSQL databases: `signum_animae_authservice`, `signum_animae_bookingservice`, `signum_animae_chatservice`, `signum_animae_notificationservice` (tables are created automatically by Hibernate — no manual migrations needed).
+2. Set the following environment variables: `Username`, `Password` (Postgres), `JWT_SECRET`, `KEY` (Gemini API key), `MAIL_USERNAME`, `MAIL_PASSWORD` (for notification emails). `INTERNAL_SERVICE_TOKEN` falls back to a local-dev default if left unset.
+3. Start each service separately from its own folder (e.g. `./gradlew bootRun`) — the order doesn't strictly matter, but it's easiest to start the gateway last: `auth-service` (8081), `booking-service` (8089), `chat-service` (8083), `ai-service` (8084), `notification-service` (8085), then `gateway-service` (8080).
+4. Serve the `frontend` folder with any static server (e.g. `python -m http.server 5500`) and open it in a browser. Details: [`frontend/README.md`](frontend/README.md).
 
-## Layihə strukturu
+## Project structure
 
 ```
 SIGNUM ANIMAE/
-├── gateway-service/        JWT yoxlaması, CORS, path-based yönləndirmə
-├── auth-service/           istifadəçi/usta profili, qeydiyyat-giriş
-├── booking-service/        sifariş, rəy, təqvim, AI tarixçəsi
-├── chat-service/           canlı söhbət (WebSocket/STOMP)
-├── ai-service/             Gemini AI inteqrasiyası
-├── notification-service/   daxili bildiriş və e-poçt
-└── frontend/               saf HTML/CSS/JS istifadəçi interfeysi
+├── gateway-service/        JWT validation, CORS, path-based routing
+├── auth-service/           user & artist profiles, registration/login
+├── booking-service/        bookings, reviews, calendar, AI history
+├── chat-service/           live chat (WebSocket/STOMP)
+├── ai-service/             Gemini AI integration
+├── notification-service/   in-app notifications & email
+└── frontend/               plain HTML/CSS/JS user interface
 ```
 
-## Testlər
+## Tests
 
-Hər servisdə Mockito ilə yazılmış "unit" testlər var — real bazaya toxunmadan yalnız məntiqin özünü yoxlayır: sifariş yaradarkən müştəri ID-sinin həmişə doğrulanmış çağırandan götürülməsi, "keçmiş tatuajlar" siyahısının qiymət/qeyd kimi məxfi sahələri heç vaxt sızdırmaması, istifadəçi profilinin e-poçtunu yalnız sahibinə göstərməsi, qiymət təklifi statistikasının düzgün hesablanması və s.
+Each service has Mockito-based unit tests that check the logic itself without touching a real database: that creating a booking always uses the verified caller as the customer ID, that the "past tattoos" list never leaks private fields like price or notes, that a user's profile only reveals their email to its own owner, that price-offer statistics are computed correctly, and more.
 
-## Bilinən məhdudiyyətlər
+## Known limitations
 
-Tələbə layihəsi olaraq real vaxt məhdudiyyətləri daxilində bəzi yerlərdə şüurlu şəkildə sadə yol seçilib: bildirişin yaradılması hazırda backend deyil, frontend tərəfindən tetiklənir; chat-service-in WebSocket bağlantısı ayrıca JWT yoxlaması aparmır (istifadəçi kimliyi bağlantı zamanı ötürülür, çünki socket gateway-i keçmədən birbaşa chat-service-ə qoşulur); servislərarası daxili çağırışlarda çağıranın ötürdüyü ID birbaşa etibar edilən şəkildə qəbul olunur. Bunlar layihənin canlı demo zamanı sabit qalması üçün bilə-bilə seçilmiş, sənədləşdirilmiş qərarlardır.
+As a student project built under real time constraints, a few deliberate simplifications were made: notification creation is currently triggered by the frontend rather than the backend itself; chat-service's WebSocket connection doesn't perform its own JWT check (the caller's identity is passed at connection time, since the socket connects directly to chat-service without going through the gateway); and internal service-to-service calls trust the caller-supplied ID directly rather than re-verifying it. These are conscious, documented trade-offs made to keep the live demo stable.
 
-## Gələcək planlar
+## Roadmap
 
-- [ ] Giriş/qeydiyyat üçün rate limiting
-- [ ] Admin/moderasiya paneli
-- [ ] Servislərarası tam "sıfır-etibar" doğrulama modeli
-- [ ] Docker/konteyner dəstəyi
+- [ ] Rate limiting on login/registration
+- [ ] Admin/moderation panel
+- [ ] A full zero-trust verification model between services
+- [ ] Docker/container support
 
 ---
 
-<p align="center"><sub>SIGNUM ANIMAE — <em>ruhun möhürü</em></sub></p>
+<p align="center"><sub>SIGNUM ANIMAE — <em>the seal of the soul</em></sub></p>
