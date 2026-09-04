@@ -17,7 +17,7 @@ public class AiController {
     private final TattooAiService tattooAiService;
 
     @PostMapping("/generate-idea")
-    public ResponseEntity<TattooIdeaResponse> generateIdea(@RequestBody TattooIdeaRequest request) {
+    public ResponseEntity<TattooIdeaResponse> generateIdea(@jakarta.validation.Valid @RequestBody TattooIdeaRequest request) {
         return ResponseEntity.ok(tattooAiService.generateTattooIdea(request));
     }
 
