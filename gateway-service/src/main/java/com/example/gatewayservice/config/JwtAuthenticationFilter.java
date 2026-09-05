@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -83,8 +85,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         wrapped.setTrustedHeader(HEADER_USER_ID, userId);
         wrapped.setTrustedHeader(HEADER_USER_ROLE, role);
 
+        // hasRole("X") in SecurityConfig needs an authority literally named "ROLE_X" - this
+        // is additive only: every existing route only checks .anyRequest().authenticated(),
+        // which doesn't look at authorities at all, so populating them here can't change
+        // behaviour for any route other than the new /api/v1/admin/** one.
+        java.util.List<GrantedAuthority> authorities = (role != null && !role.isBlank())
+                ? java.util.List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                : Collections.emptyList();
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+                new UsernamePasswordAuthenticationToken(userId, null, authorities);
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 

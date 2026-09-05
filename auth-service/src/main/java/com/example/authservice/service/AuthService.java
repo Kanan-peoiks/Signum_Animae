@@ -5,6 +5,7 @@ import com.example.authservice.dto.LoginRequest;
 import com.example.authservice.dto.RegisterRequest;
 import com.example.authservice.exception.InvalidCredentialsException;
 import com.example.authservice.exception.UserAlreadyExistsException;
+import com.example.authservice.exception.UserBannedException;
 import com.example.authservice.exception.UserNotFoundException;
 import com.example.authservice.model.ArtistProfile;
 import com.example.authservice.model.Role;
@@ -61,6 +62,9 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Daxil edilən şifrə yanlışdır!");
+        }
+        if (Boolean.TRUE.equals(user.getBanned())) {
+            throw new UserBannedException("Hesabınız bloklanıb, daxil ola bilməzsiniz.");
         }
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());

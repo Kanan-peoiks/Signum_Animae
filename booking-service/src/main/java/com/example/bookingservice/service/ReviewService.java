@@ -103,6 +103,21 @@ public class ReviewService {
         return mapToResponse(saved);
     }
 
+    /** Admin moderasiya paneli üçün - bütün rəyləri (hər ustaya aid) sadəcə sıralamasız qaytarır. */
+    public List<ReviewResponse> getAllReviews() {
+        return reviewRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /** Admin moderasiya paneli üçün - uyğunsuz/təhqiramiz rəyi tamamilə silir. */
+    @Transactional
+    public void deleteReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ReviewNotFoundException("Rəy tapılmadı! ID: " + reviewId));
+        reviewRepository.delete(review);
+    }
+
     private ReviewResponse mapToResponse(Review review) {
         return ReviewResponse.builder()
                 .id(review.getId())

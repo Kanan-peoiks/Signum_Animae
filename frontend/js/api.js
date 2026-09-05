@@ -46,7 +46,8 @@ const Session = {
   get token()    { return this.data ? this.data.token  : null; },
   get userId()   { return this.data ? this.data.userId : null; },
   get role()     { return this.data ? this.data.role   : null; },
-  get isArtist() { return this.role === 'ARTIST'; }
+  get isArtist() { return this.role === 'ARTIST'; },
+  get isAdmin()  { return this.role === 'ADMIN'; }
 };
 
 /* ---------- aşağı səviyyəli sorğu ---------- */
@@ -209,6 +210,14 @@ const Api = {
     link:        (id, customerId, bookingId) =>
                  PATCH('/api/v1/ai-ideas/' + id + '/link?customerId=' + customerId + '&bookingId=' + bookingId),
     remove:      (id, customerId) => DELETE('/api/v1/ai-ideas/' + id + '?customerId=' + customerId)
+  },
+
+  /* ---- admin moderasiya paneli (auth-service + booking-service) ---- */
+  admin: {
+    users:         () => GET('/api/v1/admin/users'),
+    setBanned:     (userId, banned) => PATCH('/api/v1/admin/users/' + userId + '/ban?banned=' + banned),
+    reviews:       () => GET('/api/v1/admin/reviews'),
+    deleteReview:  (id) => DELETE('/api/v1/admin/reviews/' + id)
   },
 
   /* ---- notification-service ---- */

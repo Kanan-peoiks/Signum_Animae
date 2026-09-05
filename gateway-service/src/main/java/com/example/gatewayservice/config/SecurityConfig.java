@@ -31,6 +31,7 @@ public class SecurityConfig {
                                 "/api/v1/artists/public/**",
                                 "/ws-tattoo/**"
                         ).permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)

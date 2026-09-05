@@ -66,6 +66,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(UserBannedException.class)
+    public ResponseEntity<ErrorResponse> handleUserBanned(UserBannedException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .status(HttpStatus.FORBIDDEN.value()) // 403
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         ErrorResponse error = ErrorResponse.builder()

@@ -3,6 +3,10 @@
    ============================================================ */
 
 const NAV = {
+  ADMIN: [
+    { key: 'admin',   ico: '⚑', label: 'Admin paneli' },
+    { key: 'profile', ico: '⍍', label: 'Profilim' }
+  ],
   CUSTOMER: [
     { key: 'discover',  ico: '✦', label: 'Kəşf et' },
     { key: 'bookings',  ico: '❖', label: 'Sifarişlərim' },
@@ -33,11 +37,11 @@ const App = {
   start() {
     $('#appShell').classList.remove('is-hidden');
     $('#whoName').textContent = Session.data.fullName || Session.data.email || '';
-    $('#whoRole').textContent = Session.isArtist ? 'Rəssam' : 'Müştəri';
+    $('#whoRole').textContent = Session.isAdmin ? 'Admin' : (Session.isArtist ? 'Rəssam' : 'Müştəri');
 
     this.buildNav();
     ChatModule.connect();
-    this.nav(Session.isArtist ? 'orders' : 'discover');
+    this.nav(Session.isAdmin ? 'admin' : (Session.isArtist ? 'orders' : 'discover'));
     this.refreshNotifBadge();
     this.refreshChatBadge();
     // WebSocket yalnız HAZIRDA açıq otağa abunədir - başqa otaqda gələn mesajı
@@ -47,7 +51,7 @@ const App = {
   },
 
   buildNav() {
-    const items = NAV[Session.isArtist ? 'ARTIST' : 'CUSTOMER'];
+    const items = NAV[Session.isAdmin ? 'ADMIN' : (Session.isArtist ? 'ARTIST' : 'CUSTOMER')];
     $('#sideNav').innerHTML = items.map(i =>
       '<button class="nav-item" data-route="' + i.key + '">' +
         '<span class="nav-ico">' + i.ico + '</span>' + esc(i.label) +
@@ -83,6 +87,7 @@ const App = {
       availability: () => this.pageAvailability(host),
       analytics: () => this.pageAnalytics(host),
       ai:       () => this.pageAi(host),
+      admin:    () => this.pageAdmin(host),
       notifs:   () => this.pageNotifs(host),
       profile:  () => this.pageProfile(host)
     };
@@ -1124,6 +1129,92 @@ const App = {
         finally { done(); }
       });
     }
+  },
+
+  /* ============================================================
+     ADMİN PANELİ (moderasiya)
+     ============================================================ */
+  async pageAdmin(host) {
+    host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') + spinner();
+
+    let users, reviews;
+    try {
+      [users, reviews] = await Promise.all([Api.admin.users(), Api.admin.reviews()]);
+    } catch (err) {
+      host.innerHTML = pageHead('Admin paneli') + emptyState(err.message, '!');
+      return;
+    }
+
+    const ROLE_AZ = { CUSTOMER: 'Müştəri', ARTIST: 'Rəssam', ADMIN: 'Admin' };
+
+    host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') +
+      '<div class="section-title" style="margin-top:0">İstifadəçilər (' + users.length + ')</div>' +
+      '<div class="rows">' +
+        (users.length
+          ? users.map(u =>
+              '<div class="row-card"><div class="row-main">' +
+                '<b>' + esc(u.fullName || '(adsız)') + '</b>' +
+                (u.banned ? ' <span class="badge CANCELLED">Bloklanıb</span>' : '') +
+                '<div class="row-meta">' + esc(u.email) + ' · ' + esc(ROLE_AZ[u.role] || u.role) +
+                  (u.city ? ' · ' + esc(u.city) : '') + '</div>' +
+                '<div class="row-meta">Qeydiyyat: ' + esc(fmtDay(u.createdAt)) + '</div>' +
+                (u.role !== 'ADMIN'
+                  ? '<button class="btn btn-sm ' + (u.banned ? 'btn-ghost' : 'btn-danger') + ' ban-btn" ' +
+                      'data-id="' + u.id + '" data-banned="' + (u.banned ? 'true' : 'false') + '" style="margin-top:10px">' +
+                      (u.banned ? 'Blokdan çıxar' : 'Blokla') + '</button>'
+                  : '') +
+              '</div></div>').join('')
+          : emptyState('Heç bir istifadəçi tapılmadı.', '✵')) +
+      '</div>' +
+
+      '<div class="section-title">Rəylər (' + reviews.length + ')</div>' +
+      '<div class="rows" id="adminReviewsBox">' +
+        (reviews.length
+          ? reviews.map(r =>
+              '<div class="row-card"><div class="row-main">' + stars(r.rating) +
+                '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
+                  esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
+                '<div class="row-meta">Müştəri #' + esc(r.customerId) + ' → Rəssam #' + esc(r.artistId) +
+                  ' · ' + esc(fmtDay(r.createdAt)) + '</div>' +
+                (r.artistReply
+                  ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
+                      'border-radius:8px;font-size:13px"><b>Ustanın cavabı:</b> ' + esc(r.artistReply) + '</div>'
+                  : '') +
+                '<button class="btn btn-ghost btn-sm delete-review-btn" data-id="' + r.id + '" style="margin-top:10px">Sil</button>' +
+              '</div></div>').join('')
+          : emptyState('Heç bir rəy yoxdur.', '✧')) +
+      '</div>';
+
+    $$('.ban-btn', host).forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const userId = Number(btn.dataset.id);
+        const nextBanned = btn.dataset.banned !== 'true';
+        const done = withBusy(btn, nextBanned ? 'Bloklanır' : 'Açılır');
+        try {
+          await Api.admin.setBanned(userId, nextBanned);
+          toastOk(nextBanned ? 'İstifadəçi bloklandı.' : 'İstifadəçi blokdan çıxarıldı.');
+          this.pageAdmin(host);
+        } catch (err) {
+          toastErr(err.message);
+          done();
+        }
+      });
+    });
+
+    $$('.delete-review-btn', host).forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const reviewId = Number(btn.dataset.id);
+        const done = withBusy(btn, 'Silinir');
+        try {
+          await Api.admin.deleteReview(reviewId);
+          toastOk('Rəy silindi.');
+          this.pageAdmin(host);
+        } catch (err) {
+          toastErr(err.message);
+          done();
+        }
+      });
+    });
   }
 };
 
