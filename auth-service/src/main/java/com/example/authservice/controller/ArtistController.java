@@ -38,23 +38,13 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getPopularArtists(limit));
     }
 
-    /**
-     * {id} here is the artist's USER id (see ArtistService.getArtistByUserId javadoc) -
-     * the same id returned as "userId" from /api/v1/auth/register and /login, and the
-     * same id used as artistId in booking-service and chat-service.
-     */
     @GetMapping("/public/{id}")
     public ResponseEntity<ArtistProfileDto> getArtistById(@PathVariable Long id) {
         return ResponseEntity.ok(artistService.getArtistByUserId(id));
     }
 
-    /**
-     * Internal, service-to-service only (called by booking-service via Feign after a
-     * review is created) - guarded by TrustedRequestFilter's "/internal/" rule (a shared
-     * X-Internal-Token), not a user identity - there is no end-user token in a
-     * server-to-server call.
-     */
-    /** Usta analitika paneli - profilin neçə dəfə baxıldığı. */
+
+    // Usta analitika paneli
     @GetMapping("/{userId}/views")
     public ResponseEntity<Long> getViewCount(@PathVariable Long userId) {
         return ResponseEntity.ok(artistService.getViewCount(userId));
@@ -66,11 +56,6 @@ public class ArtistController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * Artist self-service profile edit (bio/experienceYears/styles). Requires the
-     * verified caller (X-User-Id, set by the gateway from the JWT) to match {userId} -
-     * an artist can only edit their own profile, not someone else's.
-     */
     @PatchMapping("/{userId}")
     public ResponseEntity<ArtistProfileDto> updateMyProfile(@PathVariable Long userId,
                                                              @Valid @RequestBody UpdateArtistProfileRequest request) {
