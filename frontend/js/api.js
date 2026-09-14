@@ -217,7 +217,11 @@ const Api = {
     users:         () => GET('/api/v1/admin/users'),
     setBanned:     (userId, banned) => PATCH('/api/v1/admin/users/' + userId + '/ban?banned=' + banned),
     reviews:       () => GET('/api/v1/admin/reviews'),
-    deleteReview:  (id) => DELETE('/api/v1/admin/reviews/' + id)
+    deleteReview:  (id) => DELETE('/api/v1/admin/reviews/' + id),
+    // Platforma statistikası iki servisdən gəlir - yollar qəsdən fərqlidir,
+    // eyni olsaydı gateway route-ları toqquşardı.
+    userStats:     () => GET('/api/v1/admin/stats/users'),
+    bookingStats:  () => GET('/api/v1/admin/stats/bookings')
   },
 
   /* ---- notification-service ---- */

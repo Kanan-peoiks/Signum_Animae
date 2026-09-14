@@ -1137,9 +1137,16 @@ const App = {
   async pageAdmin(host) {
     host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') + spinner();
 
-    let users, reviews;
+    let users, reviews, uStats, bStats;
     try {
-      [users, reviews] = await Promise.all([Api.admin.users(), Api.admin.reviews()]);
+      // Siyahılar əsas məzmundur - onlar sınarsa səhifə xəta göstərir. Statistika
+      // əlavədir: bir servis əlçatmaz olsa qalan panel yenə işləməlidir.
+      [users, reviews, uStats, bStats] = await Promise.all([
+        Api.admin.users(),
+        Api.admin.reviews(),
+        Api.admin.userStats().catch(() => null),
+        Api.admin.bookingStats().catch(() => null)
+      ]);
     } catch (err) {
       host.innerHTML = pageHead('Admin paneli') + emptyState(err.message, '!');
       return;
@@ -1147,8 +1154,53 @@ const App = {
 
     const ROLE_AZ = { CUSTOMER: 'Müştəri', ARTIST: 'Rəssam', ADMIN: 'Admin' };
 
+    const tile = (value, label) =>
+      '<div class="card card-pad" style="text-align:center;flex:1;min-width:130px">' +
+        '<div style="font-family:var(--f-display);font-size:28px;color:var(--brass)">' + esc(value) + '</div>' +
+        '<div class="row-meta" style="margin-top:6px">' + esc(label) + '</div>' +
+      '</div>';
+
+    const statRow = (tiles) =>
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">' + tiles.join('') + '</div>';
+
+    const topCities = (uStats && uStats.topCities && uStats.topCities.length)
+      ? '<div class="section-title">Ən çox istifadəçisi olan şəhərlər</div>' +
+        statRow(uStats.topCities.map(c => tile(c.count, c.city)))
+      : '';
+
+    const statsBlock = (!uStats && !bStats)
+      ? '<div class="section-title" style="margin-top:0">Platforma statistikası</div>' +
+        emptyState('Statistikanı yükləmək mümkün olmadı.', '!')
+      : '<div class="section-title" style="margin-top:0">İstifadəçilər</div>' +
+        statRow([
+          tile(uStats ? uStats.totalUsers   : '—', 'Ümumi istifadəçi'),
+          tile(uStats ? uStats.customers    : '—', 'Müştəri'),
+          tile(uStats ? uStats.artists      : '—', 'Rəssam'),
+          tile(uStats ? uStats.admins       : '—', 'Admin'),
+          tile(uStats ? uStats.bannedUsers  : '—', 'Bloklanmış'),
+          tile(uStats ? uStats.newLast7Days : '—', 'Son 7 gündə yeni'),
+          tile(uStats ? uStats.newLast30Days: '—', 'Son 30 gündə yeni')
+        ]) +
+        topCities +
+        '<div class="section-title">Sifarişlər və rəylər</div>' +
+        statRow([
+          tile(bStats ? bStats.totalBookings     : '—', 'Ümumi sifariş'),
+          tile(bStats ? bStats.pendingBookings   : '—', 'Gözləyən'),
+          tile(bStats ? bStats.confirmedBookings : '—', 'Təsdiqlənmiş'),
+          tile(bStats ? bStats.completedBookings : '—', 'Tamamlanmış'),
+          tile(bStats ? bStats.cancelledBookings : '—', 'Ləğv edilmiş'),
+          tile(bStats ? bStats.newLast7Days      : '—', 'Son 7 gündə yeni'),
+          tile(bStats ? bStats.newLast30Days     : '—', 'Son 30 gündə yeni')
+        ]) +
+        statRow([
+          tile(bStats ? bStats.totalReviews : '—', 'Ümumi rəy'),
+          tile(bStats && bStats.averageRating ? bStats.averageRating.toFixed(1) : '—', 'Orta reytinq'),
+          tile(bStats ? (Number(bStats.totalRevenue) || 0).toFixed(0) + ' AZN' : '—', 'Təxmini dövriyyə')
+        ]);
+
     host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') +
-      '<div class="section-title" style="margin-top:0">İstifadəçilər (' + users.length + ')</div>' +
+      statsBlock +
+      '<div class="section-title">İstifadəçi siyahısı (' + users.length + ')</div>' +
       '<div class="rows">' +
         (users.length
           ? users.map(u =>

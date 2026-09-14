@@ -49,6 +49,16 @@ spring:
               uri: http://localhost:8089
               predicates:
                 - Path=/api/v1/ai-ideas/**
+            # Admin statistikası iki servisə bölünüb (istifadəçilər 8081-də, bronlar
+            # 8089-da), ona görə yollar da fərqlidir - eyni olsaydı route-lar toqquşardı.
+            - id: admin-stats-users-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/v1/admin/stats/users
+            - id: admin-stats-bookings-service
+              uri: http://localhost:8089
+              predicates:
+                - Path=/api/v1/admin/stats/bookings
             - id: admin-users-service
               uri: http://localhost:8081
               predicates:
