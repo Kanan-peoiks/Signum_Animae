@@ -10,6 +10,7 @@ const NAV = {
   CUSTOMER: [
     { key: 'discover',  ico: '✦', label: 'Kəşf et' },
     { key: 'bookings',  ico: '❖', label: 'Sifarişlərim' },
+    { key: 'following', ico: '♡', label: 'İzlədiklərim' },
     { key: 'chats',     ico: '☾', label: 'Söhbətlər' },
     { key: 'ai',        ico: '◈', label: 'AI Studiya' },
     { key: 'notifs',    ico: '✉', label: 'Bildirişlər' },
@@ -30,6 +31,11 @@ const NAV = {
 const App = {
   route: null,
   pendingRoomId: null,
+
+  /* İzlənilən ustaların userId-ləri. Usta kartları hər biri üçün ayrıca sorğu
+     atmasın deyə bir dəfə yükləyib keshləyirik; hər izlə/çıx əməliyyatında yenilənir. */
+  followingIds: new Set(),
+  followingLoaded: false,
   nameCache: ChatModule.peerCache,   // eyni keşi paylaşırıq
 
   chatBadgeTimer: null,
@@ -38,6 +44,9 @@ const App = {
     $('#appShell').classList.remove('is-hidden');
     $('#whoName').textContent = Session.data.fullName || Session.data.email || '';
     $('#whoRole').textContent = Session.isAdmin ? 'Admin' : (Session.isArtist ? 'Rəssam' : 'Müştəri');
+
+    this.followingIds = new Set();
+    this.followingLoaded = false;
 
     this.buildNav();
     ChatModule.connect();
@@ -81,6 +90,7 @@ const App = {
       artist:   () => this.pageArtist(host, param),
       customer: () => this.pageCustomer(host, param),
       bookings: () => this.pageBookings(host),
+      following: () => this.pageFollowing(host),
       orders:   () => this.pageOrders(host),
       chats:    () => ChatModule.renderPage(host),
       reviews:  () => this.pageReviews(host),
@@ -97,6 +107,91 @@ const App = {
   /* Bron/söhbət siyahılarında yalnız id gəlir — ad üçün ayrıca sorğu lazımdır,
      ona görə nəticələri keşləyirik. */
   resolveName(userId) { return ChatModule.resolvePeerName(userId); },
+
+  /* ============================================================
+     USTA İZLƏMƏ (favoritlər)
+     ============================================================ */
+
+  /** İzləmə yalnız müştəriyə aiddir - usta özünü, admin isə heç kəsi izləmir. */
+  canFollow() { return !Session.isArtist && !Session.isAdmin && Session.userId != null; },
+
+  /** Keshi bir dəfə doldurur. Sınarsa boş qalır: izləmə nişanı görünməsə də,
+      səhifənin qalanı normal işləməlidir. */
+  async ensureFollowing() {
+    if (!this.canFollow() || this.followingLoaded) return;
+    try {
+      const list = await Api.follows.forCustomer(Session.userId);
+      this.followingIds = new Set((list || []).map(a => Number(a.userId)));
+    } catch (err) {
+      this.followingIds = new Set();
+    }
+    this.followingLoaded = true;
+  },
+
+  followButton(artistUserId, isFollowing, extraStyle) {
+    return '<button class="btn btn-sm ' + (isFollowing ? 'btn-ghost' : 'btn-primary') + ' follow-btn" ' +
+      'data-artist="' + esc(artistUserId) + '" data-following="' + (isFollowing ? 'true' : 'false') + '"' +
+      (extraStyle ? ' style="' + extraStyle + '"' : '') + '>' +
+      (isFollowing ? 'İzləyirsən ✓' : 'İzlə') + '</button>';
+  },
+
+  async toggleFollow(btn) {
+    const artistId = Number(btn.dataset.artist);
+    const wasFollowing = btn.dataset.following === 'true';
+    const done = withBusy(btn, wasFollowing ? 'Çıxarılır' : 'İzlənilir');
+    try {
+      if (wasFollowing) {
+        await Api.follows.remove(Session.userId, artistId);
+        this.followingIds.delete(artistId);
+      } else {
+        await Api.follows.add(Session.userId, artistId);
+        this.followingIds.add(artistId);
+      }
+      done();
+      btn.dataset.following = wasFollowing ? 'false' : 'true';
+      btn.className = btn.className.replace(wasFollowing ? 'btn-ghost' : 'btn-primary',
+                                            wasFollowing ? 'btn-primary' : 'btn-ghost');
+      btn.innerHTML = wasFollowing ? 'İzlə' : 'İzləyirsən ✓';
+      toastOk(wasFollowing ? 'İzləmədən çıxarıldı.' : 'Usta izlənilənlərə əlavə edildi.');
+    } catch (err) {
+      done();
+      toastErr(err.message);
+    }
+  },
+
+  bindFollowButtons(root) {
+    $$('.follow-btn', root).forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Usta kartının özünün "profilə keç" handler-i var - düymə onu işə salmamalıdır.
+        e.stopPropagation();
+        this.toggleFollow(btn);
+      });
+    });
+  },
+
+  /* İzlənilən ustaların siyahısı */
+  async pageFollowing(host) {
+    host.innerHTML = pageHead('İzlədiklərim', 'Bəyəndiyin ustalar bir yerdə') + spinner();
+
+    let list;
+    try {
+      list = await Api.follows.forCustomer(Session.userId);
+    } catch (err) {
+      host.innerHTML = pageHead('İzlədiklərim') + emptyState(err.message, '!');
+      return;
+    }
+
+    // Siyahının özü ən dəqiq mənbədir - eyni zamanda keshi də burada yeniləyirik.
+    this.followingIds = new Set((list || []).map(a => Number(a.userId)));
+    this.followingLoaded = true;
+
+    host.innerHTML = pageHead('İzlədiklərim', 'Bəyəndiyin ustalar bir yerdə') +
+      (list.length
+        ? '<div class="grid grid-artists">' + list.map(a => this.artistCard(a)).join('') + '</div>'
+        : emptyState('Hələ heç bir ustanı izləmirsən — "Kəşf et" bölməsindən başla.', '♡'));
+
+    this.bindArtistCards(host);
+  },
 
   /* ============================================================
      KƏŞF ET (müştəri)
@@ -137,6 +232,9 @@ const App = {
     $('#fRating').addEventListener('change', () => this.runSearch());
     $('#fExperience').addEventListener('change', () => this.runSearch());
     $('#fSort').addEventListener('change', () => this.runSearch());
+
+    // Kartların "İzlə" düyməsi keshə baxdığı üçün rəndləmədən əvvəl doldurulmalıdır.
+    await this.ensureFollowing();
 
     // populyarlıq siyahısı Redis-dəki baxış sayğacından formalaşır
     try {
@@ -182,12 +280,16 @@ const App = {
         '<span class="a-city">' +
           (a.experienceYears ? esc(a.experienceYears) + ' il təcrübə' : '') + '</span>' +
       '</div>' +
+      (this.canFollow()
+        ? this.followButton(a.userId, this.followingIds.has(Number(a.userId)), 'margin-top:12px;width:100%')
+        : '') +
     '</article>';
   },
 
   bindArtistCards(root) {
     $$('.artist-card', root).forEach(card =>
       card.addEventListener('click', () => this.nav('artist', Number(card.dataset.artist))));
+    this.bindFollowButtons(root);
   },
 
   /* ============================================================
@@ -195,12 +297,22 @@ const App = {
      ============================================================ */
   async pageArtist(host, artistUserId) {
     host.innerHTML = spinner();
-    let artist, reviews = [], slots = [];
+    const canFollow = this.canFollow();
+    let artist, reviews = [], slots = [], followers = 0, isFollowing = false;
     try {
       // Bu sorğu həm də Redis-də baxış sayğacını artırır (populyarlıq üçün)
       artist = await Api.artists.byUserId(artistUserId);
       reviews = await Api.reviews.forArtist(artistUserId).catch(() => []);
       slots = await Api.availability.publicSlots(artistUserId).catch(() => []);
+      // İzləyici sayı və öz vəziyyətimə əlavə məlumatdır - sınarsa səhifə yenə açılmalıdır.
+      [followers, isFollowing] = await Promise.all([
+        Api.follows.count(artistUserId).catch(() => 0),
+        canFollow ? Api.follows.isFollowing(Session.userId, artistUserId).catch(() => false) : false
+      ]);
+      if (canFollow) {
+        if (isFollowing) this.followingIds.add(Number(artistUserId));
+        else this.followingIds.delete(Number(artistUserId));
+      }
     } catch (err) {
       host.innerHTML = pageHead('Usta') + emptyState(err.message, '!');
       return;
@@ -214,10 +326,14 @@ const App = {
           '<div style="flex:1;min-width:200px">' +
             '<div class="page-title" style="font-size:25px">' + esc(artist.fullName || '—') + '</div>' +
             '<div class="a-city" style="margin-top:5px">' + esc(artist.city || 'Şəhər göstərilməyib') +
-              (artist.experienceYears ? ' · ' + esc(artist.experienceYears) + ' il təcrübə' : '') + '</div>' +
+              (artist.experienceYears ? ' · ' + esc(artist.experienceYears) + ' il təcrübə' : '') +
+              ' · ' + esc(followers) + ' izləyici</div>' +
             '<div style="margin-top:10px">' + ratingBlock(artist.ratingAvg, artist.ratingCount) + '</div>' +
           '</div>' +
-          '<button class="btn btn-primary" id="bookBtn">Sifariş ver</button>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+            (canFollow ? this.followButton(artistUserId, isFollowing) : '') +
+            '<button class="btn btn-primary" id="bookBtn">Sifariş ver</button>' +
+          '</div>' +
         '</div>' +
         (artist.bio
           ? '<p style="margin:22px 0 0;font-family:var(--f-serif);font-size:17px;' +
@@ -257,6 +373,7 @@ const App = {
 
     $('#backBtn').addEventListener('click', () => this.nav('discover'));
     $('#bookBtn').addEventListener('click', () => this.promptBooking(artist));
+    this.bindFollowButtons(host);
     $$('.pick-slot', host).forEach(btn => {
       btn.addEventListener('click', () => this.promptBooking(artist, btn.dataset.start));
     });

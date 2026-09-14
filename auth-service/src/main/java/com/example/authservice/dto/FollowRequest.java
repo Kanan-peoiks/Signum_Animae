@@ -1,0 +1,18 @@
+package com.example.authservice.dto;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class FollowRequest {
+
+    @NotNull(message = "Müştəri id-si boş ola bilməz.")
+    private Long customerId;
+
+    @NotNull(message = "Usta id-si boş ola bilməz.")
+    private Long artistId;
+}

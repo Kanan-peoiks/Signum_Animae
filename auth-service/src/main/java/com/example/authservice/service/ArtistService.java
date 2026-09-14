@@ -67,7 +67,7 @@ public class ArtistService {
 
         return artistProfileRepository.findAll(spec, sort)
                 .stream()
-                .map(this::mapToDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -81,7 +81,7 @@ public class ArtistService {
         ArtistProfile profile = artistProfileRepository.findByUserId(artistUserId)
                 .orElseThrow(() -> new ArtistNotFoundException("Rəssam tapılmadı! userId: " + artistUserId));
         artistPopularityService.recordView(artistUserId);
-        return mapToDto(profile);
+        return toDto(profile);
     }
 
     /** Usta analitika paneli üçün - profilin neçə dəfə baxıldığı (Redis-dən). */
@@ -93,7 +93,7 @@ public class ArtistService {
         Set<Long> artistUserIds = artistPopularityService.getPopularArtistIds(limit);
         List<ArtistProfileDto> result = new ArrayList<>();
         for (Long userId : artistUserIds) {
-            artistProfileRepository.findByUserId(userId).ifPresent(profile -> result.add(mapToDto(profile)));
+            artistProfileRepository.findByUserId(userId).ifPresent(profile -> result.add(toDto(profile)));
         }
         return result;
     }
@@ -143,10 +143,12 @@ public class ArtistService {
         }
 
         ArtistProfile saved = artistProfileRepository.save(profile);
-        return mapToDto(saved);
+        return toDto(saved);
     }
 
-    private ArtistProfileDto mapToDto(ArtistProfile profile) {
+    /** ArtistProfile -> ArtistProfileDto. Public-dir ki, ArtistFollowService də eyni
+     *  xülasə formasını təkrar yazmadan istifadə edə bilsin. */
+    public ArtistProfileDto toDto(ArtistProfile profile) {
         return ArtistProfileDto.builder()
                 .id(profile.getId())
                 .userId(profile.getUser().getId())

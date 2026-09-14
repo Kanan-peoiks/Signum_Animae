@@ -32,7 +32,8 @@ public class SecurityConfig {
                                 "/api/v1/artists/public/**",
                                 "/api/v1/artists/internal/**",
                                 "/api/v1/artists/**",  // includes PATCH /{userId} self-edit and /{userId}/views
-                                "/api/v1/users/**"     // self-service profile edit - same trust boundary reasoning
+                                "/api/v1/users/**",    // self-service profile edit - same trust boundary reasoning
+                                "/api/v1/follows/**"   // müştərinin usta izləmələri - eyni etibar sərhədi
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

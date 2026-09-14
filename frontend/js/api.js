@@ -212,6 +212,17 @@ const Api = {
     remove:      (id, customerId) => DELETE('/api/v1/ai-ideas/' + id + '?customerId=' + customerId)
   },
 
+  /* ---- usta izləmə / favoritlər (auth-service) ---- */
+  follows: {
+    add:         (customerId, artistId) => POST('/api/v1/follows', { customerId, artistId }),
+    remove:      (customerId, artistId) =>
+                 DELETE('/api/v1/follows?customerId=' + customerId + '&artistId=' + artistId),
+    forCustomer: (customerId) => GET('/api/v1/follows/customer/' + customerId),
+    count:       (artistId) => GET('/api/v1/follows/artist/' + artistId + '/count'),
+    isFollowing: (customerId, artistId) =>
+                 GET('/api/v1/follows/exists?customerId=' + customerId + '&artistId=' + artistId)
+  },
+
   /* ---- admin moderasiya paneli (auth-service + booking-service) ---- */
   admin: {
     users:         () => GET('/api/v1/admin/users'),
