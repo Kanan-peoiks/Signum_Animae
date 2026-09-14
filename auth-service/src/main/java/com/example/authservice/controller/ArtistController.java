@@ -1,6 +1,8 @@
 package com.example.authservice.controller;
 
 import com.example.authservice.dto.ArtistProfileDto;
+import com.example.authservice.dto.PageParams;
+import com.example.authservice.dto.PageResponse;
 import com.example.authservice.dto.UpdateArtistProfileRequest;
 import com.example.authservice.dto.UpdateArtistRatingRequest;
 import com.example.authservice.service.ArtistService;
@@ -19,17 +21,22 @@ public class ArtistController {
 
     private final ArtistService artistService;
 
+    /** Səhifələnmişdir: ?page=0&size=20. Cavab PageResponse-dur - siyahı əvvəlki kimi
+     *  birbaşa yox, "content" sahəsinin içində gəlir. */
     @GetMapping("/public/search")
-    public ResponseEntity<List<ArtistProfileDto>> searchArtists(
+    public ResponseEntity<PageResponse<ArtistProfileDto>> searchArtists(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String style,
             @RequestParam(required = false) String minRating,
             @RequestParam(required = false) String minExperience,
-            @RequestParam(required = false) String sortBy) {
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
         Double minRatingVal = (minRating != null && !minRating.isBlank()) ? Double.parseDouble(minRating) : null;
         Integer minExperienceVal = (minExperience != null && !minExperience.isBlank()) ? Integer.parseInt(minExperience) : null;
-        return ResponseEntity.ok(artistService.searchArtists(city, style, minRatingVal, minExperienceVal, sortBy));
+        return ResponseEntity.ok(PageResponse.from(artistService.searchArtists(
+                city, style, minRatingVal, minExperienceVal, sortBy, PageParams.of(page, size, null))));
     }
 
     @GetMapping("/public/popular")

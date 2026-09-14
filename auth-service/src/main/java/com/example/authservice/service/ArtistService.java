@@ -7,6 +7,9 @@ import com.example.authservice.model.ArtistProfile;
 import com.example.authservice.repo.ArtistProfileRepository;
 import com.example.authservice.repo.ArtistSpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -14,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,18 +25,17 @@ public class ArtistService {
     private final ArtistProfileRepository artistProfileRepository;
     private final ArtistPopularityService artistPopularityService;
 
-    public List<ArtistProfileDto> searchArtists(String city, String style, Double minRating) {
-        return searchArtists(city, style, minRating, null, null);
-    }
-
     /**
-     * @param minExperienceYears yeni, istəyə bağlı filtr - minimum təcrübə ili.
-     * @param sortBy yeni, istəyə bağlı sıralama: "rating" (ən yüksək reytinq əvvəldə) və ya
-     *               "experience" (ən təcrübəli əvvəldə). Digər/boş dəyər - əvvəlki kimi
-     *               sıralamasız (verilənlər bazasının öz sırası).
+     * @param minExperienceYears istəyə bağlı filtr - minimum təcrübə ili.
+     * @param sortBy istəyə bağlı sıralama: "rating" (ən yüksək reytinq əvvəldə) və ya
+     *               "experience" (ən təcrübəli əvvəldə). Digər/boş dəyər - sıralamasız
+     *               (verilənlər bazasının öz sırası).
+     * @param pageable səhifə nömrəsi/ölçüsü. Sıralama buradakı sortBy-dan gəlir, ona görə
+     *                 pageable-in öz Sort-u nəzərə alınmır.
      */
-    public List<ArtistProfileDto> searchArtists(String city, String style, Double minRating,
-                                                 Integer minExperienceYears, String sortBy) {
+    public Page<ArtistProfileDto> searchArtists(String city, String style, Double minRating,
+                                                Integer minExperienceYears, String sortBy,
+                                                Pageable pageable) {
         // Spring Data JPA 4.x's Specification.where()/.and() throw on a null argument now
         // (Assert.notNull inside), unlike older versions where null meant "no restriction".
         // So we filter out the filters that weren't supplied ourselves, then combine only
@@ -65,10 +66,8 @@ public class ArtistService {
                 : "experience".equalsIgnoreCase(sortBy) ? Sort.by(Sort.Direction.DESC, "experienceYears")
                 : Sort.unsorted();
 
-        return artistProfileRepository.findAll(spec, sort)
-                .stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        return artistProfileRepository.findAll(spec, sorted).map(this::toDto);
     }
 
     /**

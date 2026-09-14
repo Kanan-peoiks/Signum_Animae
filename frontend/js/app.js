@@ -161,6 +161,8 @@ const App = {
 
   bindFollowButtons(root) {
     $$('.follow-btn', root).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
       btn.addEventListener('click', (e) => {
         // Usta kartının özünün "profilə keç" handler-i var - düymə onu işə salmamalıdır.
         e.stopPropagation();
@@ -250,21 +252,65 @@ const App = {
     this.runSearch();
   },
 
-  async runSearch() {
+  /** @param page 0-dan başlayan səhifə nömrəsi.
+   *  @param append true olanda mövcud kartların üstünə əlavə edir ("Daha çox yüklə"),
+   *                false olanda siyahını sıfırdan qurur (yeni axtarış). */
+  async runSearch(page = 0, append = false) {
     const box = $('#resultsBox');
     if (!box) return;
-    box.innerHTML = spinner();
+    if (!append) box.innerHTML = spinner();
+
+    let res;
     try {
-      const list = await Api.artists.search(
+      res = await Api.artists.search(
         $('#fCity').value.trim(), $('#fStyle').value.trim(), $('#fRating').value,
-        $('#fExperience').value, $('#fSort').value);
-      box.innerHTML = list.length
-        ? '<div class="grid grid-artists">' + list.map(a => this.artistCard(a)).join('') + '</div>'
-        : emptyState('Bu şərtlərə uyğun usta tapılmadı.', '✦');
-      this.bindArtistCards(box);
+        $('#fExperience').value, $('#fSort').value, page);
     } catch (err) {
-      box.innerHTML = emptyState(err.message, '!');
+      if (append) {
+        toastErr(err.message);
+        const btn = $('#moreArtistsBtn', box);
+        if (btn) { btn.disabled = false; btn.textContent = 'Daha çox yüklə'; }
+      } else {
+        box.innerHTML = emptyState(err.message, '!');
+      }
+      return;
     }
+
+    const list = res.content || [];
+    const cards = list.map(a => this.artistCard(a)).join('');
+
+    if (append) {
+      const grid = $('.grid-artists', box);
+      if (grid) grid.insertAdjacentHTML('beforeend', cards);
+    } else if (list.length) {
+      box.innerHTML =
+        '<div class="row-meta" style="margin-bottom:12px">Tapıldı: ' + esc(res.totalElements) + '</div>' +
+        '<div class="grid grid-artists">' + cards + '</div>' +
+        '<div id="artistsMoreWrap"></div>';
+    } else {
+      box.innerHTML = emptyState('Bu şərtlərə uyğun usta tapılmadı.', '✦');
+    }
+
+    const wrap = $('#artistsMoreWrap', box);
+    if (wrap) {
+      wrap.innerHTML = res.last ? '' : this.loadMoreButton('moreArtistsBtn');
+      const btn = $('#moreArtistsBtn', box);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          btn.disabled = true;
+          btn.textContent = 'Yüklənir…';
+          this.runSearch(res.number + 1, true);
+        });
+      }
+    }
+
+    this.bindArtistCards(box);
+  },
+
+  /** Səhifələnmiş siyahıların altındakı ortaq "daha çox" düyməsi. */
+  loadMoreButton(id) {
+    return '<div style="text-align:center;margin-top:18px">' +
+      '<button class="btn btn-ghost" id="' + id + '">Daha çox yüklə</button></div>';
   },
 
   artistCard(a) {
@@ -287,8 +333,13 @@ const App = {
   },
 
   bindArtistCards(root) {
-    $$('.artist-card', root).forEach(card =>
-      card.addEventListener('click', () => this.nav('artist', Number(card.dataset.artist))));
+    // "Daha çox yüklə"dən sonra root-da həm köhnə, həm yeni kartlar olur -
+    // artıq bağlanmış karta ikinci dəfə handler qoymaq iki dəfə naviqasiya deməkdir.
+    $$('.artist-card', root).forEach(card => {
+      if (card.dataset.bound) return;
+      card.dataset.bound = '1';
+      card.addEventListener('click', () => this.nav('artist', Number(card.dataset.artist)));
+    });
     this.bindFollowButtons(root);
   },
 

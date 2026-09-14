@@ -8,6 +8,9 @@
    ============================================================ */
 
 const API_BASE = 'http://localhost:8080';
+/* Səhifələnmiş siyahılarda bir dəfəyə çəkilən element sayı. Backend 100-dən
+   böyük ölçünü onsuz da 100-ə endirir (bax PageParams). */
+const PAGE_SIZE = 12;
 const WS_URL   = 'ws://localhost:8083/ws-tattoo';
 
 /* ---------- sessiya yaddaşı ---------- */
@@ -136,15 +139,18 @@ const Api = {
 
   /* ---- auth-service: rəssam profilləri ---- */
   artists: {
-    search(city, style, minRating, minExperience, sortBy) {
+    /* Səhifələnmiş cavab qaytarır:
+       { content: [...], totalElements, totalPages, number, size, last } */
+    search(city, style, minRating, minExperience, sortBy, page = 0, size = PAGE_SIZE) {
       const q = new URLSearchParams();
       if (city)         q.set('city', city);
       if (style)        q.set('style', style);
       if (minRating)    q.set('minRating', minRating);
       if (minExperience) q.set('minExperience', minExperience);
       if (sortBy)       q.set('sortBy', sortBy);
-      const qs = q.toString();
-      return GET('/api/v1/artists/public/search' + (qs ? '?' + qs : ''));
+      q.set('page', page);
+      q.set('size', size);
+      return GET('/api/v1/artists/public/search?' + q.toString());
     },
     popular: (limit = 8) => GET('/api/v1/artists/public/popular?limit=' + limit),
     // {userId} — rəssamın USER id-si (bütün sistemdə "artistId" elə budur)
