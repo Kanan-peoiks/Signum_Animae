@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/**",
+                                "/api/v1/admin/**",  // gateway already gates this with hasRole("ADMIN")
                                 "/api/v1/artists/public/**",
                                 "/api/v1/artists/internal/**",
                                 "/api/v1/artists/**",  // includes PATCH /{userId} self-edit and /{userId}/views
