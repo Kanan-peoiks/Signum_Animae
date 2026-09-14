@@ -1,15 +1,18 @@
 package com.example.notificationservice.controller;
 
 import com.example.notificationservice.dto.NotificationRequest;
+import com.example.notificationservice.dto.PageParams;
+import com.example.notificationservice.dto.PageResponse;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -25,10 +28,23 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.sendNotification(request));
     }
 
-    /** Private - only the notifications' own owner can list them. */
+    /** Private - only the notifications' own owner can list them.
+     *  Səhifələnmişdir: ?page=0&size=20, cavab PageResponse ("content" içində). */
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getUserNotifications(userId));
+    public ResponseEntity<PageResponse<Notification>> getUserNotifications(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Sort newestFirst = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        return ResponseEntity.ok(PageResponse.from(
+                notificationService.getUserNotifications(userId, PageParams.of(page, size, newestFirst))));
+    }
+
+    /** Yan paneldəki oxunmamış nişanı - siyahı səhifələndiyi üçün ayrıca sayğac lazımdır. */
+    @GetMapping("/user/{userId}/unread-count")
+    public ResponseEntity<Map<String, Long>> getUnreadCount(@PathVariable Long userId) {
+        return ResponseEntity.ok(Map.of("count", notificationService.countUnread(userId)));
     }
 
     @PatchMapping("/{id}/read")

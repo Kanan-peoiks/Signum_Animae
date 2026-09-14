@@ -7,6 +7,8 @@ import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repo.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -50,8 +52,12 @@ public class NotificationService {
         return saved;
     }
 
-    public List<Notification> getUserNotifications(Long userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    public Page<Notification> getUserNotifications(Long userId, Pageable pageable) {
+        return notificationRepository.findByUserId(userId, pageable);
+    }
+
+    public long countUnread(Long userId) {
+        return notificationRepository.countUnread(userId);
     }
 
     /** @return false if the notification doesn't exist or doesn't belong to callerId -

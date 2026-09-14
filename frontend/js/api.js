@@ -264,7 +264,11 @@ const Api = {
   /* ---- notification-service ---- */
   notifications: {
     send:      (payload) => POST('/api/v1/notifications/send', payload),
-    forUser:   (userId) => GET('/api/v1/notifications/user/' + userId),
+    // Səhifələnmiş cavab ({ content, ... }), ən yeni bildiriş əvvəldə.
+    forUser:   (userId, page = 0, size = PAGE_SIZE) =>
+               GET('/api/v1/notifications/user/' + userId + '?page=' + page + '&size=' + size),
+    // Yan paneldəki nişan: siyahı səhifələndiyi üçün oxunmamışları serverdə sayırıq.
+    unreadCount: (userId) => GET('/api/v1/notifications/user/' + userId + '/unread-count'),
     markRead:  (id) => PATCH('/api/v1/notifications/' + id + '/read')
   }
 };

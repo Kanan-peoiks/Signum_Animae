@@ -660,7 +660,7 @@ const App = {
     $$(selector, root).forEach(el => {
       if (el.dataset.bound) return;
       el.dataset.bound = '1';
-      el.addEventListener('click', () => handler(el));
+      el.addEventListener('click', (e) => handler(el, e));
     });
   },
 
@@ -1204,23 +1204,13 @@ const App = {
      BİLDİRİŞLƏR
      ============================================================ */
   async pageNotifs(host) {
-    host.innerHTML = pageHead('Bildirişlər') + spinner();
-    let list;
-    try {
-      list = await Api.notifications.forUser(Session.userId);
-    } catch (err) {
-      host.innerHTML = pageHead('Bildirişlər') + emptyState(err.message, '!');
-      return;
-    }
-    if (!list.length) {
-      host.innerHTML = pageHead('Bildirişlər') + emptyState('Bildiriş yoxdur.', '✉');
-      this.refreshNotifBadge();
-      return;
-    }
+    host.innerHTML = pageHead('Bildirişlər') + '<div id="notifsBox"></div>';
 
-    list.sort((a, b) => b.id - a.id);
-    host.innerHTML = pageHead('Bildirişlər') +
-      '<div class="rows">' + list.map(n => {
+    await this.pagedList({
+      box: $('#notifsBox', host),
+      fetch: (page) => Api.notifications.forUser(Session.userId, page),
+      empty: emptyState('Bildiriş yoxdur.', '✉'),
+      render: (n) => {
         const isRead = (n.read !== undefined) ? n.read : n.isRead;
         return '<div class="notif ' + (isRead ? '' : 'unread') +
           '" data-notif="' + n.id + '" style="cursor:pointer">' +
@@ -1231,35 +1221,36 @@ const App = {
           '</div>' +
           (isRead ? '' : '<button class="btn btn-ghost btn-sm" data-read="' + n.id + '">Oxundu</button>') +
         '</div>';
-      }).join('') + '</div>';
+      },
+      onPage: () => {
+        this.bindOnce('[data-read]', host, (btn, e) => {
+          // Düymə sətrin içindədir - klik yuxarı ötürsə həm də başqa səhifəyə keçərdik.
+          e.stopPropagation();
+          const done = withBusy(btn, '');
+          Api.notifications.markRead(Number(btn.dataset.read))
+            .then(() => this.nav('notifs'))
+            .catch(err => { toastErr(err.message); done(); });
+        });
 
-    $$('[data-read]', host).forEach(btn => btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const done = withBusy(btn, '');
-      try {
-        await Api.notifications.markRead(Number(btn.dataset.read));
-        this.nav('notifs');
-      } catch (err) { toastErr(err.message); done(); }
-    }));
+        // Bildirişə klikləyəndə aid olduğu bölməyə keçirik. Hazırda bütün bildirişlər
+        // sifariş/söhbət mövzuludur (bax notifyQuietly çağırışlarına), ona görə
+        // rola görə ən uyğun siyahıya yönləndiririk.
+        this.bindOnce('[data-notif]', host, (row) => {
+          Api.notifications.markRead(Number(row.dataset.notif)).catch(() => {});
+          this.nav(Session.isArtist ? 'orders' : 'bookings');
+        });
 
-    // Bildirişə tıklayanda ilgili bölməyə keçirik. Hazırda bütün bildirişlər
-    // sifariş/söhbət mövzuludur (bax notifyQuietly çağırışlarına), ona görə
-    // rola görə ən uyğun siyahıya yönləndiririk; "Oxundu" düyməsi öz klikini
-    // yuxarı ötürmür (stopPropagation), ona görə iki iş toqquşmur.
-    $$('[data-notif]', host).forEach(row => row.addEventListener('click', () => {
-      Api.notifications.markRead(Number(row.dataset.notif)).catch(() => {});
-      this.nav(Session.isArtist ? 'orders' : 'bookings');
-    }));
-
-    this.refreshNotifBadge();
+        this.refreshNotifBadge();
+      }
+    });
   },
 
   async refreshNotifBadge() {
     const badge = $('#notifBadge');
     if (!badge || !Session.userId) return;
     try {
-      const list = await Api.notifications.forUser(Session.userId);
-      const unread = list.filter(n => !((n.read !== undefined) ? n.read : n.isRead)).length;
+      const res = await Api.notifications.unreadCount(Session.userId);
+      const unread = (res && res.count) ? res.count : 0;
       badge.textContent = unread;
       badge.classList.toggle('is-hidden', unread === 0);
     } catch (e) {
