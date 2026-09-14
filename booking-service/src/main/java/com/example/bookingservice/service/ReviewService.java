@@ -17,6 +17,8 @@ import com.example.bookingservice.repository.BookingRepository;
 import com.example.bookingservice.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,10 +82,10 @@ public class ReviewService {
         return mapToResponse(saved);
     }
 
-    public List<ReviewResponse> getReviewsForArtist(Long artistId) {
-        return reviewRepository.findByArtistId(artistId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    /** Ən yeni rəy əvvəldə. Sıralama əvvəllər yox idi (verilənlər bazasının öz sırası),
+     *  səhifələmə üçün isə sabit sıra məcburidir. */
+    public Page<ReviewResponse> getReviewsForArtist(Long artistId, Pageable pageable) {
+        return reviewRepository.findByArtistId(artistId, pageable).map(this::mapToResponse);
     }
 
     /** Usta öz rəyinə ictimai cavab yazır/redaktə edir - artistId review-un öz artistId-si

@@ -192,7 +192,9 @@ const Api = {
   /* ---- booking-service: rəylər ---- */
   reviews: {
     create:    (payload) => POST('/api/v1/reviews', payload),
-    forArtist: (artistId) => GET('/api/v1/reviews/artist/' + artistId),
+    // Səhifələnmiş cavab: { content, totalElements, totalPages, number, size, last }
+    forArtist: (artistId, page = 0, size = PAGE_SIZE) =>
+               GET('/api/v1/reviews/artist/' + artistId + '?page=' + page + '&size=' + size),
     reply:     (reviewId, payload) => PATCH('/api/v1/reviews/' + reviewId + '/reply', payload)
   },
 

@@ -313,6 +313,76 @@ const App = {
       '<button class="btn btn-ghost" id="' + id + '">Daha çox yüklə</button></div>';
   },
 
+  _pagedSeq: 0,
+
+  /**
+   * Səhifələnmiş siyahını verilmiş qaba yığır və altına "Daha çox yüklə" qoyur.
+   * Backend-in bütün səhifələnmiş endpoint-ləri eyni formada cavab verir
+   * ({ content, totalElements, totalPages, number, size, last }), ona görə bu köməkçi
+   * hamsı üçün işləyir.
+   *
+   * @param o.box      DOM qabı (siyahı tam bu qabın içində qurulur)
+   * @param o.fetch    (page) => Promise<PageResponse>
+   * @param o.render   (element) => HTML sətri
+   * @param o.empty    siyahı boş olanda göstərilən HTML (emptyState(...))
+   * @param o.listClass siyahı qabının class-ı (default 'rows')
+   * @param o.onPage   (res, box, yeniElementlər) - handler bağlamaq üçün, hər
+   *                   səhifədən sonra çağrılır
+   */
+  async pagedList(o) {
+    const box = o.box;
+    if (!box) return;
+    const id = 'pl' + (++this._pagedSeq);
+    box.innerHTML = spinner();
+
+    const load = async (page, append) => {
+      let res;
+      try {
+        res = await o.fetch(page);
+      } catch (err) {
+        if (append) {
+          toastErr(err.message);
+          const b = document.getElementById(id + '-btn');
+          if (b) { b.disabled = false; b.textContent = 'Daha çox yüklə'; }
+        } else {
+          box.innerHTML = emptyState(err.message, '!');
+        }
+        return;
+      }
+
+      const items = res.content || [];
+      const html = items.map(o.render).join('');
+
+      if (append) {
+        const list = document.getElementById(id);
+        if (list) list.insertAdjacentHTML('beforeend', html);
+      } else if (items.length) {
+        box.innerHTML =
+          '<div class="' + (o.listClass || 'rows') + '" id="' + id + '">' + html + '</div>' +
+          '<div id="' + id + '-more"></div>';
+      } else {
+        box.innerHTML = o.empty || emptyState('Siyahı boşdur.');
+      }
+
+      const moreWrap = document.getElementById(id + '-more');
+      if (moreWrap) {
+        moreWrap.innerHTML = res.last ? '' : this.loadMoreButton(id + '-btn');
+        const btn = document.getElementById(id + '-btn');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            btn.disabled = true;
+            btn.textContent = 'Yüklənir…';
+            load(res.number + 1, true);
+          });
+        }
+      }
+
+      if (o.onPage) o.onPage(res, box);
+    };
+
+    await load(0, false);
+  },
+
   artistCard(a) {
     return '<article class="artist-card" data-artist="' + esc(a.userId) + '">' +
       '<div class="a-head">' +
@@ -349,11 +419,10 @@ const App = {
   async pageArtist(host, artistUserId) {
     host.innerHTML = spinner();
     const canFollow = this.canFollow();
-    let artist, reviews = [], slots = [], followers = 0, isFollowing = false;
+    let artist, slots = [], followers = 0, isFollowing = false;
     try {
       // Bu sorğu həm də Redis-də baxış sayğacını artırır (populyarlıq üçün)
       artist = await Api.artists.byUserId(artistUserId);
-      reviews = await Api.reviews.forArtist(artistUserId).catch(() => []);
       slots = await Api.availability.publicSlots(artistUserId).catch(() => []);
       // İzləyici sayı və öz vəziyyətimə əlavə məlumatdır - sınarsa səhifə yenə açılmalıdır.
       [followers, isFollowing] = await Promise.all([
@@ -404,23 +473,30 @@ const App = {
               '</div></div>').join('') +
           '</div>'
         : '') +
-      '<div class="section-title">Rəylər (' + reviews.length + ')</div>' +
-      '<div class="rows">' +
-        (reviews.length
-          ? reviews.map(r =>
-              '<div class="row-card"><div class="row-main">' + stars(r.rating) +
-                '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
-                  esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
-                '<div class="row-meta">' + esc(fmtDay(r.createdAt)) + '</div>' +
-                (r.artistReply
-                  ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
-                      'border-radius:8px;font-size:13px">' +
-                      '<b>Ustanın cavabı:</b> ' + esc(r.artistReply) +
-                    '</div>'
-                  : '') +
-              '</div></div>').join('')
-          : emptyState('Bu usta haqqında hələ rəy yoxdur.', '✧')) +
-      '</div>';
+      '<div class="section-title">Rəylər <span id="artistReviewCount"></span></div>' +
+      '<div id="artistReviewsBox"></div>';
+
+    this.pagedList({
+      box: $('#artistReviewsBox', host),
+      fetch: (page) => Api.reviews.forArtist(artistUserId, page),
+      empty: emptyState('Bu usta haqqında hələ rəy yoxdur.', '✧'),
+      render: (r) =>
+        '<div class="row-card"><div class="row-main">' + stars(r.rating) +
+          '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
+            esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
+          '<div class="row-meta">' + esc(fmtDay(r.createdAt)) + '</div>' +
+          (r.artistReply
+            ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
+                'border-radius:8px;font-size:13px">' +
+                '<b>Ustanın cavabı:</b> ' + esc(r.artistReply) +
+              '</div>'
+            : '') +
+        '</div></div>',
+      onPage: (res) => {
+        const counter = $('#artistReviewCount', host);
+        if (counter) counter.textContent = '(' + res.totalElements + ')';
+      }
+    });
 
     $('#backBtn').addEventListener('click', () => this.nav('discover'));
     $('#bookBtn').addEventListener('click', () => this.promptBooking(artist));
@@ -716,14 +792,7 @@ const App = {
      ============================================================ */
   async pageReviews(host) {
     host.innerHTML = pageHead('Rəylərim', 'Müştərilərin nə dediyi') + spinner();
-    let reviews, profile;
-    try {
-      reviews = await Api.reviews.forArtist(Session.userId);
-      profile = await Api.artists.byUserId(Session.userId).catch(() => null);
-    } catch (err) {
-      host.innerHTML = pageHead('Rəylərim') + emptyState(err.message, '!');
-      return;
-    }
+    const profile = await Api.artists.byUserId(Session.userId).catch(() => null);
 
     host.innerHTML = pageHead('Rəylərim', 'Müştərilərin nə dediyi') +
       (profile
@@ -735,24 +804,33 @@ const App = {
               esc(profile.ratingCount || 0) + ' rəy əsasında</div>' +
           '</div>'
         : '') +
-      '<div class="rows">' +
-        (reviews.length
-          ? reviews.map(r =>
-              '<div class="row-card"><div class="row-main">' + stars(r.rating) +
-                '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
-                  esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
-                '<div class="row-meta">' + esc(fmtDay(r.createdAt)) + '</div>' +
-                (r.artistReply
-                  ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
-                      'border-radius:8px;font-size:13px">' +
-                      '<b>Sənin cavabın:</b> ' + esc(r.artistReply) +
-                    '</div>'
-                  : '<button class="btn btn-ghost btn-sm reply-btn" data-id="' + r.id + '" style="margin-top:10px">Cavab yaz</button>') +
-              '</div></div>').join('')
-          : emptyState('Hələ rəy yoxdur. Tamamlanmış sifarişdən sonra müştəri rəy yaza bilər.', '✧')) +
-      '</div>';
+      '<div id="myReviewsBox"></div>';
 
+    await this.pagedList({
+      box: $('#myReviewsBox', host),
+      fetch: (page) => Api.reviews.forArtist(Session.userId, page),
+      empty: emptyState('Hələ rəy yoxdur. Tamamlanmış sifarişdən sonra müştəri rəy yaza bilər.', '✧'),
+      render: (r) =>
+        '<div class="row-card"><div class="row-main">' + stars(r.rating) +
+          '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
+            esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
+          '<div class="row-meta">' + esc(fmtDay(r.createdAt)) + '</div>' +
+          (r.artistReply
+            ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
+                'border-radius:8px;font-size:13px">' +
+                '<b>Sənin cavabın:</b> ' + esc(r.artistReply) +
+              '</div>'
+            : '<button class="btn btn-ghost btn-sm reply-btn" data-id="' + r.id + '" style="margin-top:10px">Cavab yaz</button>') +
+        '</div></div>',
+      // Hər yeni səhifədən sonra təzə "Cavab yaz" düymələri gəlir - onları da bağlamaq lazımdır.
+      onPage: () => this.bindReviewReplyButtons(host)
+    });
+  },
+
+  bindReviewReplyButtons(host) {
     $$('.reply-btn', host).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
       btn.addEventListener('click', () => {
         const reviewId = Number(btn.dataset.id);
         openModal('Rəyə cavab yaz',
