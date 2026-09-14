@@ -12,6 +12,8 @@ import com.example.bookingservice.model.BookingStatus;
 import com.example.bookingservice.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -50,16 +52,13 @@ public class BookingService {
         return mapToResponse(booking);
     }
 
-    public List<BookingResponse> getBookingsByCustomer(Long customerId) {
-        return bookingRepository.findByCustomerId(customerId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    /** Səhifələnmiş: ən yeni bron əvvəldə (sıra pageable-dən gəlir). */
+    public Page<BookingResponse> getBookingsByCustomer(Long customerId, Pageable pageable) {
+        return bookingRepository.findByCustomerId(customerId, pageable).map(this::mapToResponse);
     }
 
-    public List<BookingResponse> getBookingsByArtist(Long artistId) {
-        return bookingRepository.findByArtistId(artistId).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<BookingResponse> getBookingsByArtist(Long artistId, Pageable pageable) {
+        return bookingRepository.findByArtistId(artistId, pageable).map(this::mapToResponse);
     }
 
     /** Usta analitika paneli üçün - sırf oxu, heç bir mövcud axını dəyişmir. */

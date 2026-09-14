@@ -4,11 +4,14 @@ import com.example.bookingservice.dto.BookingRequest;
 import com.example.bookingservice.dto.BookingResponse;
 import com.example.bookingservice.dto.ArtistStatsDto;
 import com.example.bookingservice.dto.CompletedTattooDto;
+import com.example.bookingservice.dto.PageParams;
+import com.example.bookingservice.dto.PageResponse;
 import com.example.bookingservice.dto.UpdateBookingPriceRequest;
 import com.example.bookingservice.dto.UpdateStatusRequest;
 import com.example.bookingservice.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +22,11 @@ import java.util.List;
 @RequestMapping("/api/v1/bookings")
 @RequiredArgsConstructor
 public class BookingController {
+
+    /** Səhifələmə sabit sıra tələb edir - əks halda səhifələr arasında sətir təkrarlana
+     *  və ya itə bilər. Ən yeni bron əvvəldə; id eyni anı paylaşan sətirlər üçün təminatdır. */
+    private static final Sort NEWEST_FIRST =
+            Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
 
     private final BookingService bookingService;
 
@@ -35,16 +43,24 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
-    /** "My orders" list - private, customer-only. */
+    /** "My orders" list - private, customer-only. Səhifələnmişdir (?page=&size=). */
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<BookingResponse>> getBookingsByCustomer(@PathVariable Long customerId) {
-        return ResponseEntity.ok(bookingService.getBookingsByCustomer(customerId));
+    public ResponseEntity<PageResponse<BookingResponse>> getBookingsByCustomer(
+            @PathVariable Long customerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.from(
+                bookingService.getBookingsByCustomer(customerId, PageParams.of(page, size, NEWEST_FIRST))));
     }
 
-    /** "My bookings" list as an artist - private, artist-only. */
+    /** "My bookings" list as an artist - private, artist-only. Səhifələnmişdir. */
     @GetMapping("/artist/{artistId}")
-    public ResponseEntity<List<BookingResponse>> getBookingsByArtist(@PathVariable Long artistId) {
-        return ResponseEntity.ok(bookingService.getBookingsByArtist(artistId));
+    public ResponseEntity<PageResponse<BookingResponse>> getBookingsByArtist(
+            @PathVariable Long artistId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(PageResponse.from(
+                bookingService.getBookingsByArtist(artistId, PageParams.of(page, size, NEWEST_FIRST))));
     }
 
     /** Usta analitika paneli - sifariş sayları və qazanc. */

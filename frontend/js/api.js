@@ -169,8 +169,11 @@ const Api = {
   bookings: {
     create:      (payload) => POST('/api/v1/bookings', payload),
     byId:        (id) => GET('/api/v1/bookings/' + id),
-    forCustomer: (customerId) => GET('/api/v1/bookings/customer/' + customerId),
-    forArtist:   (artistId) => GET('/api/v1/bookings/artist/' + artistId),
+    // Səhifələnmiş cavab ({ content, ... }), ən yeni bron əvvəldə sıralanır.
+    forCustomer: (customerId, page = 0, size = PAGE_SIZE) =>
+                 GET('/api/v1/bookings/customer/' + customerId + '?page=' + page + '&size=' + size),
+    forArtist:   (artistId, page = 0, size = PAGE_SIZE) =>
+                 GET('/api/v1/bookings/artist/' + artistId + '?page=' + page + '&size=' + size),
     setStatus:   (id, status) => PATCH('/api/v1/bookings/' + id + '/status', { status }),
     /* Başqasının profilindəki "keçmiş tatuajlar" siyahısı - server artıq qiymət/qeyd
        kimi məxfi sahələri kəsir (bax booking-service

@@ -608,25 +608,20 @@ const App = {
      SİFARİŞLƏRİM (müştəri)
      ============================================================ */
   async pageBookings(host) {
-    host.innerHTML = pageHead('Sifarişlərim', 'Bütün sorğuların və vəziyyətləri') + spinner();
-    let list;
-    try {
-      list = await Api.bookings.forCustomer(Session.userId);
-    } catch (err) {
-      host.innerHTML = pageHead('Sifarişlərim') + emptyState(err.message, '!');
-      return;
-    }
-    if (!list.length) {
-      host.innerHTML = pageHead('Sifarişlərim') +
-        emptyState('Hələ sifariş yoxdur. "Kəşf et" bölməsindən usta seç.', '❖');
-      return;
-    }
-
-    await Promise.all(list.map(b => this.resolveName(b.artistId)));
-    list.sort((a, b) => b.id - a.id);
-
     host.innerHTML = pageHead('Sifarişlərim', 'Bütün sorğuların və vəziyyətləri') +
-      '<div class="rows">' + list.map(b => {
+      '<div id="bookingsBox"></div>';
+
+    await this.pagedList({
+      box: $('#bookingsBox', host),
+      // Ad ancaq id ilə gəlir - rəndləmədən ƏVVƏL həll edilməlidir, ona görə burada.
+      // Sıralama artıq backend-dədir (ən yeni əvvəldə).
+      fetch: async (page) => {
+        const res = await Api.bookings.forCustomer(Session.userId, page);
+        await Promise.all((res.content || []).map(b => this.resolveName(b.artistId)));
+        return res;
+      },
+      empty: emptyState('Hələ sifariş yoxdur. "Kəşf et" bölməsindən usta seç.', '❖'),
+      render: (b) => {
         const name = this.nameCache.get(b.artistId) || ('Usta #' + b.artistId);
         return '<div class="row-card">' +
           '<span class="avatar avatar-sm">' + esc(initials(name)) + '</span>' +
@@ -646,39 +641,45 @@ const App = {
               ? '<button class="btn btn-danger btn-sm" data-cancel="' + b.id + '">Ləğv et</button>' : '') +
           '</div>' +
         '</div>';
-      }).join('') + '</div>';
+      },
+      // "Daha çox yüklə" yeni sətirlər gətirir - onların da düymələri bağlanmalıdır.
+      onPage: () => {
+        this.bindOnce('[data-chat]', host, (btn) =>
+          this.openChatFor(Number(btn.dataset.chat), Session.userId, Number(btn.dataset.artist), btn));
+        this.bindOnce('[data-review]', host, (btn) => this.promptReview(Number(btn.dataset.review)));
+        this.bindOnce('[data-cancel]', host, (btn) =>
+          this.changeStatus(Number(btn.dataset.cancel), 'CANCELLED', btn, 'bookings'));
+      }
+    });
+  },
 
-    $$('[data-chat]', host).forEach(btn => btn.addEventListener('click', () =>
-      this.openChatFor(Number(btn.dataset.chat), Session.userId, Number(btn.dataset.artist), btn)));
-    $$('[data-review]', host).forEach(btn => btn.addEventListener('click', () =>
-      this.promptReview(Number(btn.dataset.review))));
-    $$('[data-cancel]', host).forEach(btn => btn.addEventListener('click', () =>
-      this.changeStatus(Number(btn.dataset.cancel), 'CANCELLED', btn, 'bookings')));
+  /** Verilmiş seçiciyə uyğun elementlərə bir dəfə klik handler-i qoşur.
+   *  Səhifələnmiş siyahılarda köhnə sətirlər yerində qaldığı üçün təkrar bağlama
+   *  eyni əməliyyatın iki dəfə işləməsi demək olardı. */
+  bindOnce(selector, root, handler) {
+    $$(selector, root).forEach(el => {
+      if (el.dataset.bound) return;
+      el.dataset.bound = '1';
+      el.addEventListener('click', () => handler(el));
+    });
   },
 
   /* ============================================================
      GƏLƏN SİFARİŞLƏR (rəssam)
      ============================================================ */
   async pageOrders(host) {
-    host.innerHTML = pageHead('Gələn sifarişlər', 'Təsdiqlə, tamamla və ya ləğv et') + spinner();
-    let list;
-    try {
-      list = await Api.bookings.forArtist(Session.userId);
-    } catch (err) {
-      host.innerHTML = pageHead('Gələn sifarişlər') + emptyState(err.message, '!');
-      return;
-    }
-    if (!list.length) {
-      host.innerHTML = pageHead('Gələn sifarişlər') +
-        emptyState('Hələ sifariş gəlməyib. Profilini doldurmaq görünürlüyünü artırır.', '❖');
-      return;
-    }
-
-    await Promise.all(list.map(b => this.resolveName(b.customerId)));
-    list.sort((a, b) => b.id - a.id);
-
     host.innerHTML = pageHead('Gələn sifarişlər', 'Təsdiqlə, tamamla və ya ləğv et') +
-      '<div class="rows">' + list.map(b => {
+      '<div id="ordersBox"></div>';
+
+    await this.pagedList({
+      box: $('#ordersBox', host),
+      fetch: async (page) => {
+        const res = await Api.bookings.forArtist(Session.userId, page);
+        await Promise.all((res.content || []).map(b => this.resolveName(b.customerId)));
+        return res;
+      },
+      empty: emptyState('Hələ sifariş gəlməyib. Profilini doldurmaq görünürlüyünü artırır.', '❖'),
+      render: (b) => {
         const name = this.nameCache.get(b.customerId) || ('Müştəri #' + b.customerId);
         return '<div class="row-card">' +
           '<span class="avatar avatar-sm" data-viewcustomer="' + b.customerId +
@@ -707,16 +708,18 @@ const App = {
                 b.id + '">Ləğv et</button>' : '') +
           '</div>' +
         '</div>';
-      }).join('') + '</div>';
-
-    $$('[data-chat]', host).forEach(btn => btn.addEventListener('click', () =>
-      this.openChatFor(Number(btn.dataset.chat), Number(btn.dataset.customer), Session.userId, btn)));
-    $$('[data-set]', host).forEach(btn => btn.addEventListener('click', () =>
-      this.changeStatus(Number(btn.dataset.id), btn.dataset.set, btn, 'orders')));
-    $$('[data-viewprofile]', host).forEach(el => el.addEventListener('click', () =>
-      this.nav('customer', Number(el.dataset.viewprofile))));
-    $$('[data-viewcustomer]', host).forEach(el => el.addEventListener('click', () =>
-      this.nav('customer', Number(el.dataset.viewcustomer))));
+      },
+      onPage: () => {
+        this.bindOnce('[data-chat]', host, (btn) =>
+          this.openChatFor(Number(btn.dataset.chat), Number(btn.dataset.customer), Session.userId, btn));
+        this.bindOnce('[data-set]', host, (btn) =>
+          this.changeStatus(Number(btn.dataset.id), btn.dataset.set, btn, 'orders'));
+        this.bindOnce('[data-viewprofile]', host, (el) =>
+          this.nav('customer', Number(el.dataset.viewprofile)));
+        this.bindOnce('[data-viewcustomer]', host, (el) =>
+          this.nav('customer', Number(el.dataset.viewcustomer)));
+      }
+    });
   },
 
   async changeStatus(bookingId, status, btn, backRoute) {
@@ -1162,9 +1165,12 @@ const App = {
   async promptLinkIdea(ideaId, host) {
     let bookings;
     try {
-      bookings = Session.isArtist
-        ? await Api.bookings.forArtist(Session.userId)
-        : await Api.bookings.forCustomer(Session.userId);
+      // Bu bir açılan siyahıdır, "daha çox" düyməsi yoxdur - ona görə bir dəfəyə
+      // daha böyük səhifə çəkirik (backend-in yuxarı həddi 100-dür).
+      const res = Session.isArtist
+        ? await Api.bookings.forArtist(Session.userId, 0, 100)
+        : await Api.bookings.forCustomer(Session.userId, 0, 100);
+      bookings = res.content || [];
     } catch (err) { toastErr(err.message); return; }
 
     if (!bookings.length) { toastErr('Hələ heç bir sifarişin yoxdur.'); return; }
