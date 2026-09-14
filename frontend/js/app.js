@@ -1172,7 +1172,17 @@ const App = {
             '<span class="avatar avatar-lg">' + esc(initials(user.fullName)) + '</span>' +
             '<div><div class="a-name">' + esc(user.fullName || '—') + '</div>' +
               '<div class="a-city">' + esc(user.email) + ' · ' +
-                (Session.isArtist ? 'Rəssam' : 'Müştəri') + '</div></div>' +
+                (Session.isAdmin ? 'Admin' : (Session.isArtist ? 'Rəssam' : 'Müştəri')) + '</div>' +
+              // emailVerified null ola bilər (köhnə hesablar) - o zaman da "təsdiqlənməyib"
+              // görünür, amma bu heç nəyi bloklamır, sadəcə nişandır.
+              '<div style="margin-top:6px">' +
+                (user.emailVerified
+                  ? '<span class="badge COMPLETED">Email təsdiqlənib ✓</span>'
+                  : '<span class="badge PENDING">Email təsdiqlənməyib</span>' +
+                    '<button class="btn btn-ghost btn-sm" id="verifyEmailBtn" style="margin-left:8px">' +
+                      'Təsdiq linki göndər</button>') +
+              '</div>' +
+            '</div>' +
           '</div>' +
           '<label class="field"><span>Ad, soyad</span>' +
             '<input type="text" id="pName" value="' + esc(user.fullName || '') + '"></label>' +
@@ -1213,6 +1223,20 @@ const App = {
             '</div>') +
 
       '</div>';
+
+    const verifyBtn = $('#verifyEmailBtn');
+    if (verifyBtn) {
+      verifyBtn.addEventListener('click', async () => {
+        const done = withBusy(verifyBtn, 'Göndərilir');
+        try {
+          const res = await Api.auth.sendVerification(user.email);
+          toastOk((res && res.message) || 'Təsdiq linki göndərildi.');
+        } catch (err) {
+          toastErr(err.message);
+        }
+        done();
+      });
+    }
 
     $('#saveUserBtn').addEventListener('click', async (e) => {
       const done = withBusy(e.currentTarget, 'Yadda saxlanır');
@@ -1324,6 +1348,7 @@ const App = {
               '<div class="row-card"><div class="row-main">' +
                 '<b>' + esc(u.fullName || '(adsız)') + '</b>' +
                 (u.banned ? ' <span class="badge CANCELLED">Bloklanıb</span>' : '') +
+                (u.emailVerified ? ' <span class="badge COMPLETED">Email ✓</span>' : '') +
                 '<div class="row-meta">' + esc(u.email) + ' · ' + esc(ROLE_AZ[u.role] || u.role) +
                   (u.city ? ' · ' + esc(u.city) : '') + '</div>' +
                 '<div class="row-meta">Qeydiyyat: ' + esc(fmtDay(u.createdAt)) + '</div>' +

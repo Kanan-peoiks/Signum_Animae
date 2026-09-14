@@ -41,6 +41,11 @@ public class User {
      *  AdminService. */
     private Boolean banned;
 
+    /** banned ile eyni səbəbdən nullable: mövcud dolu cədvələ NOT NULL sütun əlavə etmək
+     *  ddl-auto=update altında sınardı. null = "hələ təsdiqlənməyib" - girişi BLOKLAMIR,
+     *  yalnız profildə nişan kimi göstərilir (bax AuthService.register). */
+    private Boolean emailVerified;
+
     private LocalDateTime createdAt;
 
     @PrePersist

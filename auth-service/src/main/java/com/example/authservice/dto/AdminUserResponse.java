@@ -22,5 +22,6 @@ public class AdminUserResponse {
     private Role role;
     private String city;
     private boolean banned;
+    private Boolean emailVerified;
     private LocalDateTime createdAt;
 }

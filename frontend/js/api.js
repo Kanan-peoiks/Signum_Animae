@@ -84,11 +84,18 @@ async function request(method, path, body, opts = {}) {
   }
 
   if (res.status === 401 || res.status === 403) {
-    if (!opts.silentAuth) {
-      Session.clear();
-      lastAuthFailureAt = Date.now();
-      window.dispatchEvent(new CustomEvent('signum:unauthorized'));
+    // silentAuth: giriş/qeydiyyat kimi hazırda sessiyası OLMAYAN axınlar. Orada 401
+    // "sessiya bitdi" demir - "şifrə yanlışdır" və ya "hesab bloklanıb" deməkdir, ona
+    // görə serverə məxsus mətni udmur, olduğu kimi ötürürük.
+    if (opts.silentAuth) {
+      const authText = await res.text();
+      let authData = null;
+      if (authText) { try { authData = JSON.parse(authText); } catch (e) { authData = authText; } }
+      throw new ApiError((authData && authData.message) ? authData.message : 'Giriş alınmadı.', res.status);
     }
+    Session.clear();
+    lastAuthFailureAt = Date.now();
+    window.dispatchEvent(new CustomEvent('signum:unauthorized'));
     throw new ApiError('Sessiya bitib və ya icazə yoxdur. Yenidən daxil ol.', res.status);
   }
 
@@ -115,8 +122,16 @@ const Api = {
 
   /* ---- auth-service ---- */
   auth: {
-    register: (payload) => POST('/api/v1/auth/register', payload),
-    login:    (payload) => POST('/api/v1/auth/login', payload)
+    // silentAuth: bu iki çağırış giriş ekranından gedir - 401/403 burada "sessiya bitdi"
+    // yox, "şifrə yanlışdır"/"hesab bloklanıb" deməkdir.
+    register: (payload) => POST('/api/v1/auth/register', payload, { silentAuth: true }),
+    login:    (payload) => POST('/api/v1/auth/login', payload, { silentAuth: true }),
+    // Aşağıdakıların hamsı /api/v1/auth/** altındadır - yni gateway-də də,
+    // auth-service-də də onsuz da permitAll, token tələb etmir.
+    forgotPassword:   (email) => POST('/api/v1/auth/forgot-password', { email }),
+    resetPassword:    (token, newPassword) => POST('/api/v1/auth/reset-password', { token, newPassword }),
+    verifyEmail:      (token) => GET('/api/v1/auth/verify-email?token=' + encodeURIComponent(token)),
+    sendVerification: (email) => POST('/api/v1/auth/send-verification', { email })
   },
 
   /* ---- auth-service: rəssam profilləri ---- */

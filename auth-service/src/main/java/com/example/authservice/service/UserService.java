@@ -77,6 +77,7 @@ public class UserService {
                 .role(user.getRole())
                 .city(user.getCity())
                 .profileImageUrl(user.getProfileImageUrl())
+                .emailVerified(user.getEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

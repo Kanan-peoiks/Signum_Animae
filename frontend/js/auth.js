@@ -20,12 +20,102 @@ function runSplash() {
   buildSplashWord();
   setTimeout(() => {
     $('#splash').remove();
+    // Məktubdakı link üzrə gəlinəndə ilk iş budur - sessiya olsa da olmasa da.
+    if (handleTokenLink()) return;
     if (Session.load() && Session.token) {
       App.start();
     } else {
       showAuthScreen();
     }
   }, 3950);
+}
+
+/* ---------- şifrə sıfırlama / email təsdiqi linkləri ----------
+   İki ayrı səhifə (reset.html və s.) əvəzinə eyni SPA-nın içində işləyirik:
+   backend məktuba index.html?mode=reset&token=... (və ya mode=verify) qoyur. */
+function handleTokenLink() {
+  const params = new URLSearchParams(location.search);
+  const mode  = params.get('mode');
+  const token = params.get('token');
+  if (!token || (mode !== 'reset' && mode !== 'verify')) return false;
+
+  // Token URL-də qalmasın: səhifə yenilənəndə və ya link paylaşılanda təkrar işləməsin.
+  history.replaceState(null, '', location.pathname);
+
+  if (mode === 'verify') {
+    // Təsdiq linki: sessiya varsa istifadəçini tətbiqdən çıxarmağın mənası yoxdur.
+    if (Session.load() && Session.token) App.start();
+    else showAuthScreen();
+    verifyEmailFromLink(token);
+  } else {
+    // Şifrə sıfırlama hər halda giriş ekranında baş verir.
+    showAuthScreen();
+    openResetPasswordModal(token);
+  }
+  return true;
+}
+
+async function verifyEmailFromLink(token) {
+  try {
+    const res = await Api.auth.verifyEmail(token);
+    toastOk((res && res.message) || 'Email ünvanı təsdiqləndi.');
+  } catch (err) {
+    toastErr(err.message);
+  }
+}
+
+function openResetPasswordModal(token) {
+  openModal('Yeni şifrə təyin et',
+    '<label class="field"><span>Yeni şifrə</span>' +
+      '<input type="password" id="rpPassword" placeholder="••••••••"></label>' +
+    '<label class="field" style="margin-top:13px"><span>Yeni şifrə (təkrar)</span>' +
+      '<input type="password" id="rpPassword2" placeholder="••••••••"></label>' +
+    '<p class="form-note" style="text-align:left;margin-top:10px">Ən azı 6 simvol.</p>',
+    {
+      okText: 'Şifrəni yenilə',
+      onOk: async (overlay, close, okBtn) => {
+        const pass  = $('#rpPassword', overlay).value;
+        const pass2 = $('#rpPassword2', overlay).value;
+        if (pass.length < 6)  { toastErr('Şifrə ən azı 6 simvol olmalıdır.'); return; }
+        if (pass !== pass2)   { toastErr('Şifrələr uyğun gəlmir.'); return; }
+
+        const done = withBusy(okBtn, 'Yenilənir');
+        try {
+          const res = await Api.auth.resetPassword(token, pass);
+          close();
+          toastOk((res && res.message) || 'Şifrə yeniləndi.');
+        } catch (err) {
+          toastErr(err.message);
+          done();
+        }
+      }
+    });
+}
+
+function openForgotPasswordModal() {
+  openModal('Şifrəni unutdun?',
+    '<p class="form-note" style="text-align:left;margin-bottom:12px">' +
+      'Qeydiyyatda olan email ünvanını yaz — bərpa linkini göndərəcəyik.</p>' +
+    '<label class="field"><span>E-poçt</span>' +
+      '<input type="email" id="fpEmail" placeholder="ad@nümunə.com"></label>',
+    {
+      okText: 'Link göndər',
+      onOk: async (overlay, close, okBtn) => {
+        const email = $('#fpEmail', overlay).value.trim();
+        if (!email) { toastErr('Email ünvanını yaz.'); return; }
+
+        const done = withBusy(okBtn, 'Göndərilir');
+        try {
+          const res = await Api.auth.forgotPassword(email);
+          close();
+          toastOk((res && res.message) ||
+            'Əgər bu email sistemdə qeydiyyatdadırsa, bərpa linki göndərildi.');
+        } catch (err) {
+          toastErr(err.message);
+          done();
+        }
+      }
+    });
 }
 
 function showAuthScreen() {
@@ -53,6 +143,11 @@ function initAuthTabs() {
 
 /* ---------- formlar ---------- */
 function initAuthForms() {
+
+  $('#forgotLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    openForgotPasswordModal();
+  });
 
   $('#loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();

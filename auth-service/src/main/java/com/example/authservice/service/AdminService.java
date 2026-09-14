@@ -41,6 +41,7 @@ public class AdminService {
                 .role(user.getRole())
                 .city(user.getCity())
                 .banned(Boolean.TRUE.equals(user.getBanned()))
+                .emailVerified(user.getEmailVerified())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
