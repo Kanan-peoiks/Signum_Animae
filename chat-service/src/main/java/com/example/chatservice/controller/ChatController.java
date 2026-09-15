@@ -22,18 +22,32 @@ import java.util.List;
  * WebSocket/STOMP connection (e.g. quick Postman testing). Sending through
  * here still broadcasts to any WebSocket subscribers of the room, since it
  * shares ChatMessageService.saveMessage() with the STOMP controller.
+ *
+ * Çağıranın kimliyi HƏMİŞƏ X-User-Id başlığından götürülür. Bu başlığı yalnız
+ * gateway qoya bilər: JwtAuthenticationFilter klientdən gələn eyni adlı başlığı
+ * əvvəlcə silir və yalnız JWT doğrulandıqdan sonra öz dəyərini yazır. Sorğunun
+ * gövdəsindəki senderId/userId sahələrinə etibar edilmir - əks halda istənilən
+ * istifadəçi özünü başqası kimi təqdim edə bilərdi.
+ *
+ * Başlıq yoxdursa (məsələn kimsə gateway-i keçib birbaşa 8083-ə vurur) kimlik
+ * naməlum qalır və ChatMessageService.requireParticipant 403 qaytarır.
  */
 @RestController
 @RequestMapping("/api/v1/chat/rooms/{roomId}/messages")
 @RequiredArgsConstructor
 public class ChatController {
 
+    /** Gateway-in doğruladığı istifadəçi id-si - bax JwtAuthenticationFilter. */
+    private static final String CALLER_HEADER = "X-User-Id";
+
     private final ChatMessageService chatMessageService;
 
     @PostMapping
-    public ResponseEntity<ChatMessageResponse> sendMessage(@PathVariable Long roomId,
-                                                            @Valid @RequestBody ChatMessageRequest request) {
-        return ResponseEntity.ok(chatMessageService.saveMessage(roomId, request, request.getSenderId()));
+    public ResponseEntity<ChatMessageResponse> sendMessage(
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatMessageRequest request,
+            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+        return ResponseEntity.ok(chatMessageService.saveMessage(roomId, request, callerId));
     }
 
     /**
@@ -48,11 +62,12 @@ public class ChatController {
     public ResponseEntity<PageResponse<ChatMessageResponse>> getHistory(
             @PathVariable Long roomId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size) {
+            @RequestParam(defaultValue = "30") int size,
+            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
 
         Sort newestFirst = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
         Page<ChatMessageResponse> newestPage =
-                chatMessageService.getHistory(roomId, null, PageParams.of(page, size, newestFirst));
+                chatMessageService.getHistory(roomId, callerId, PageParams.of(page, size, newestFirst));
 
         PageResponse<ChatMessageResponse> body = PageResponse.from(newestPage);
         List<ChatMessageResponse> chronological = new ArrayList<>(body.getContent());
@@ -62,8 +77,10 @@ public class ChatController {
     }
 
     @PatchMapping("/read")
-    public ResponseEntity<Void> markAsRead(@PathVariable Long roomId, @RequestParam Long userId) {
-        chatMessageService.markAsRead(roomId, userId);
+    public ResponseEntity<Void> markAsRead(
+            @PathVariable Long roomId,
+            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+        chatMessageService.markAsRead(roomId, callerId);
         return ResponseEntity.ok().build();
     }
 
@@ -74,9 +91,11 @@ public class ChatController {
      * room so both sides see the outcome.
      */
     @PatchMapping("/{messageId}/offer")
-    public ResponseEntity<ChatMessageResponse> respondToOffer(@PathVariable Long roomId,
-                                                               @PathVariable Long messageId,
-                                                               @Valid @RequestBody OfferResponseRequest request) {
-        return ResponseEntity.ok(chatMessageService.respondToOffer(roomId, messageId, request.isAccept(), request.getUserId()));
+    public ResponseEntity<ChatMessageResponse> respondToOffer(
+            @PathVariable Long roomId,
+            @PathVariable Long messageId,
+            @Valid @RequestBody OfferResponseRequest request,
+            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+        return ResponseEntity.ok(chatMessageService.respondToOffer(roomId, messageId, request.isAccept(), callerId));
     }
 }

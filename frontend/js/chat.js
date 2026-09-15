@@ -40,7 +40,10 @@ const ChatModule = {
     }
 
     this.client = new StompJs.Client({
-      brokerURL: WS_URL + '?userId=' + Session.userId,
+      // Token MƏCBURİDİR: chat-service handshake-də imzanı yoxlayır və göndərənin
+      // kimliyini tokenin özündən götürür (bax PresenceHandshakeInterceptor).
+      // Əvvəl burada sadəcə "?userId=" gedirdi - onu istənilən kəs uydura bilərdi.
+      brokerURL: WS_URL + '?token=' + encodeURIComponent(Session.token || ''),
       reconnectDelay: 6000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
@@ -256,7 +259,7 @@ const ChatModule = {
       this.renderOlderControl();
       (res.content || []).forEach(m => this.appendMessage(m, true));
       this.scrollDown();
-      await Api.chat.markRead(roomId, Session.userId).catch(() => {});
+      await Api.chat.markRead(roomId).catch(() => {});
       App.refreshChatBadge();
     } catch (err) {
       body.innerHTML = emptyState(err.message, '!');

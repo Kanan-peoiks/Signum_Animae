@@ -164,6 +164,11 @@ public class ChatMessageService {
     }
 
     public void markAsRead(Long roomId, Long readerId) {
+        // Başqasının otağındakı mesajları "oxundu" işarələmək də vəziyyəti dəyişməkdir -
+        // qalan əməliyyatlarla eyni yoxlamadan keçir.
+        ChatRoom room = chatRoomService.findRoomOrThrow(roomId);
+        requireParticipant(room, readerId);
+
         List<ChatMessage> unread = chatMessageRepository.findByChatRoomIdAndReadFalseAndSenderIdNot(roomId, readerId);
         unread.forEach(m -> m.setRead(true));
         chatMessageRepository.saveAll(unread);
@@ -181,9 +186,18 @@ public class ChatMessageService {
         return chatMessageRepository.countByChatRoomIdInAndReadFalseAndSenderIdNot(roomIds, userId);
     }
 
-    /** Müvəqqəti olaraq söndürülüb (demo üçün) - əvvəlki kimi hər çağırana icazə verilir. */
+    /**
+     * Bir otaqda yalnız həmin otağın öz müştərisi və ustası əməliyyat apara bilər.
+     *
+     * callerId null olanda da rədd edilir: kimliyi müəyyən olmayan çağıran tərifinə
+     * görə iştirakçı deyil. Belədə "başlıq gəlməyib" halında açıq qalmırıq.
+     */
     private void requireParticipant(ChatRoom room, Long callerId) {
-        // no-op
+        if (callerId == null
+                || (!callerId.equals(room.getCustomerId()) && !callerId.equals(room.getArtistId()))) {
+            throw new NotRoomParticipantException(
+                    "Bu söhbət sizə aid deyil, burada əməliyyat apara bilməzsiniz.");
+        }
     }
 
     private void requireBookingNotCancelled(Long bookingId, String message) {

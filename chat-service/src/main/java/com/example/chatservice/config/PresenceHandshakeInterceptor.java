@@ -1,5 +1,8 @@
 package com.example.chatservice.config;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -11,15 +14,23 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * chat-service has no JWT wiring of its own for normal REST calls, and the gateway
- * CANNOT proxy a WebSocket upgrade at all (Spring Cloud Gateway Server MVC
- * limitation - see WebSocketConfig), so this endpoint is reached directly.
+ * chat-service-in REST tərəfində öz JWT quraşdırması yoxdur (kimlik gateway-in
+ * X-User-Id başlığından gəlir), gateway isə WebSocket "upgrade"-ini ümumiyyətlə proxy
+ * edə bilmir (Spring Cloud Gateway Server MVC məhdudiyyəti - bax WebSocketConfig).
+ * Yəni bu endpoint birbaşa açıqdır və onu qoruyan yeganə yer buradır.
  *
- * Trusts the "?userId=" query param the client connects with (e.g.
- * ws://localhost:8083/ws-tattoo?userId=5) and attaches it to the WS session.
+ * ƏVVƏL: sadəcə "?userId=" parametrinə inanılırdı - yəni istənilən kəs
+ * ws://localhost:8083/ws-tattoo?userId=16 ilə qoşulub özünü başqası kimi təqdim edə,
+ * onun söhbətlərinə mesaj yaza bilərdi.
+ * İNDİ: "?token=" mütləqdir və imzası yoxlanılır; sessiyaya yazılan userId tokenin
+ * subject-indən götürülür, klientin dediyi "userId" nəzərə alınmır.
  */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
+
+    private final JwtUtil jwtUtil;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
@@ -28,10 +39,16 @@ public class PresenceHandshakeInterceptor implements HandshakeInterceptor {
                 .build()
                 .getQueryParams();
 
-        String userId = firstOrNull(queryParams.get("userId"));
-        if (userId != null && !userId.isBlank()) {
-            attributes.put("userId", Long.valueOf(userId));
+        Long userId = jwtUtil.extractUserId(firstOrNull(queryParams.get("token")));
+        if (userId == null) {
+            // Kimliyi yoxlanmayan qoşulmanı ümumiyyətlə qəbul etmirik - "userId yazılmadan
+            // davam et" varianti otaq iştirakçısı yoxlamasını mənasız edərdi.
+            log.warn("WebSocket handshake rədd edildi: token yoxdur və ya etibarsızdır.");
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            return false;
         }
+
+        attributes.put("userId", userId);
         return true;
     }
 

@@ -216,7 +216,8 @@ const Api = {
     history:         (roomId, page = 0, size = CHAT_PAGE_SIZE) =>
                      GET('/api/v1/chat/rooms/' + roomId + '/messages?page=' + page + '&size=' + size),
     send:            (roomId, payload) => POST('/api/v1/chat/rooms/' + roomId + '/messages', payload),
-    markRead:        (roomId, userId) => PATCH('/api/v1/chat/rooms/' + roomId + '/messages/read?userId=' + userId),
+    // Kim oxuduğu artıq gövdədən/parametrdən yox, gateway-in X-User-Id başlığından bilinir.
+    markRead:        (roomId) => PATCH('/api/v1/chat/rooms/' + roomId + '/messages/read'),
     respondToOffer:  (roomId, messageId, userId, accept) =>
                       PATCH('/api/v1/chat/rooms/' + roomId + '/messages/' + messageId + '/offer', { userId, accept }),
     presence:        (userId) => GET('/api/v1/chat/presence/' + userId),
