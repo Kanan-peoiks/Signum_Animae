@@ -89,20 +89,34 @@ async function request(method, path, body, opts = {}) {
     throw new ApiError('Serverə qoşulmaq olmadı. Servislərin işlədiyini yoxla.', 0);
   }
 
+  /* 401 və 403 EYNİ şey deyil:
+       401 - kimliyimiz tanınmır (token yoxdur, etibarsızdır, vaxtı bitib) → çıxış etməliyik
+       403 - kimliyimiz tanınır, sadəcə bu əməliyyata icazə yoxdur (məsələn başqasının
+             söhbəti, admin olmayan istifadəçi admin yolunda) → yalnız xətanı göstəririk
+
+     Əvvəl ikisi də sessiyanı silirdi: bir dəfə "bu söhbət sizə aid deyil" cavabı almaq
+     istifadəçini tamamilə sistemdən çıxarırdı. Gateway artıq bu iki halı ayrı statusla
+     qaytarır - bax gateway-service AuthErrorConfig. */
   if (res.status === 401 || res.status === 403) {
+    const authText = await res.text();
+    let authData = null;
+    if (authText) { try { authData = JSON.parse(authText); } catch (e) { authData = authText; } }
+    const serverMessage = (authData && authData.message) ? authData.message : null;
+
     // silentAuth: giriş/qeydiyyat kimi hazırda sessiyası OLMAYAN axınlar. Orada 401
-    // "sessiya bitdi" demir - "şifrə yanlışdır" və ya "hesab bloklanıb" deməkdir, ona
-    // görə serverə məxsus mətni udmur, olduğu kimi ötürürük.
+    // "sessiya bitdi" demir - "şifrə yanlışdır" və ya "hesab bloklanıb" deməkdir.
     if (opts.silentAuth) {
-      const authText = await res.text();
-      let authData = null;
-      if (authText) { try { authData = JSON.parse(authText); } catch (e) { authData = authText; } }
-      throw new ApiError((authData && authData.message) ? authData.message : 'Giriş alınmadı.', res.status);
+      throw new ApiError(serverMessage || 'Giriş alınmadı.', res.status);
     }
+
+    if (res.status === 403) {
+      throw new ApiError(serverMessage || 'Bu əməliyyat üçün icazən yoxdur.', 403);
+    }
+
     Session.clear();
     lastAuthFailureAt = Date.now();
     window.dispatchEvent(new CustomEvent('signum:unauthorized'));
-    throw new ApiError('Sessiya bitib və ya icazə yoxdur. Yenidən daxil ol.', res.status);
+    throw new ApiError(serverMessage || 'Sessiya bitib. Yenidən daxil ol.', 401);
   }
 
   const text = await res.text();

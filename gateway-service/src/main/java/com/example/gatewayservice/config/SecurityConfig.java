@@ -1,5 +1,6 @@
 package com.example.gatewayservice.config;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +10,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -18,6 +21,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final AuthenticationEntryPoint unauthenticatedEntryPoint;
+    private final AccessDeniedHandler forbiddenHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -26,6 +31,13 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        /* ERROR/FORWARD/ASYNC dispatch-ləri artıq bir dəfə icazə alıb keçmiş
+                           sorğunun DAVAMIDIR, yeni sorğu deyil. Spring Security 6 default olaraq
+                           onları da yoxlayır, SecurityContext isə həmin anda boş olur - nəticədə
+                           downstream servis düşəndə (proxy ConnectException atır) cavab 500 yox,
+                           401 olurdu və frontend istifadəçini sistemdən çıxarırdı. */
+                        .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD,
+                                                DispatcherType.ASYNC).permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/artists/public/**",
@@ -34,6 +46,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+                // 401 (kimlik yoxdur) ilə 403 (icazə yoxdur) ayrılır - bax AuthErrorConfig.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(unauthenticatedEntryPoint)
+                        .accessDeniedHandler(forbiddenHandler))
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
