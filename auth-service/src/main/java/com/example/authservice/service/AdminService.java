@@ -5,10 +5,9 @@ import com.example.authservice.exception.UserNotFoundException;
 import com.example.authservice.model.User;
 import com.example.authservice.repo.UserRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /** Moderation-only operations. Reachable ONLY through /api/v1/admin/** - the gateway
  *  is what actually restricts this to callers with a verified ADMIN role in their JWT
@@ -20,10 +19,9 @@ public class AdminService {
 
     private final UserRepo userRepository;
 
-    public List<AdminUserResponse> listUsers() {
-        return userRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    /** Səhifələnmiş: sıra pageable-dən gəlir (ən yeni qeydiyyat əvvəldə). */
+    public Page<AdminUserResponse> listUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     public AdminUserResponse setBanned(Long userId, boolean banned) {

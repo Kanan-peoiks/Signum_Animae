@@ -23,8 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -106,10 +104,8 @@ public class ReviewService {
     }
 
     /** Admin moderasiya paneli üçün - bütün rəyləri (hər ustaya aid) sadəcə sıralamasız qaytarır. */
-    public List<ReviewResponse> getAllReviews() {
-        return reviewRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<ReviewResponse> getAllReviews(Pageable pageable) {
+        return reviewRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     /** Admin moderasiya paneli üçün - uyğunsuz/təhqiramiz rəyi tamamilə silir. */

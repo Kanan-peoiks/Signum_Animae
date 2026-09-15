@@ -251,9 +251,12 @@ const Api = {
 
   /* ---- admin moderasiya paneli (auth-service + booking-service) ---- */
   admin: {
-    users:         () => GET('/api/v1/admin/users'),
+    // Hər ikisi səhifələnmiş cavab qaytarır ({ content, ... }), ən yenilər əvvəldə.
+    users:         (page = 0, size = PAGE_SIZE) =>
+                   GET('/api/v1/admin/users?page=' + page + '&size=' + size),
     setBanned:     (userId, banned) => PATCH('/api/v1/admin/users/' + userId + '/ban?banned=' + banned),
-    reviews:       () => GET('/api/v1/admin/reviews'),
+    reviews:       (page = 0, size = PAGE_SIZE) =>
+                   GET('/api/v1/admin/reviews?page=' + page + '&size=' + size),
     deleteReview:  (id) => DELETE('/api/v1/admin/reviews/' + id),
     // Platforma statistikası iki servisdən gəlir - yollar qəsdən fərqlidir,
     // eyni olsaydı gateway route-ları toqquşardı.

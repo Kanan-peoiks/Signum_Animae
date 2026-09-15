@@ -1404,20 +1404,12 @@ const App = {
   async pageAdmin(host) {
     host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') + spinner();
 
-    let users, reviews, uStats, bStats;
-    try {
-      // Siyahılar əsas məzmundur - onlar sınarsa səhifə xəta göstərir. Statistika
-      // əlavədir: bir servis əlçatmaz olsa qalan panel yenə işləməlidir.
-      [users, reviews, uStats, bStats] = await Promise.all([
-        Api.admin.users(),
-        Api.admin.reviews(),
-        Api.admin.userStats().catch(() => null),
-        Api.admin.bookingStats().catch(() => null)
-      ]);
-    } catch (err) {
-      host.innerHTML = pageHead('Admin paneli') + emptyState(err.message, '!');
-      return;
-    }
+    // Statistika əlavədir: bir servis əlçatmaz olsa qalan panel yenə işləməlidir.
+    // Siyahıların özü aşağıda pagedList ilə ayrıca yüklənir.
+    const [uStats, bStats] = await Promise.all([
+      Api.admin.userStats().catch(() => null),
+      Api.admin.bookingStats().catch(() => null)
+    ]);
 
     const ROLE_AZ = { CUSTOMER: 'Müştəri', ARTIST: 'Rəssam', ADMIN: 'Admin' };
 
@@ -1467,73 +1459,80 @@ const App = {
 
     host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') +
       statsBlock +
-      '<div class="section-title">İstifadəçi siyahısı (' + users.length + ')</div>' +
-      '<div class="rows">' +
-        (users.length
-          ? users.map(u =>
-              '<div class="row-card"><div class="row-main">' +
-                '<b>' + esc(u.fullName || '(adsız)') + '</b>' +
-                (u.banned ? ' <span class="badge CANCELLED">Bloklanıb</span>' : '') +
-                (u.emailVerified ? ' <span class="badge COMPLETED">Email ✓</span>' : '') +
-                '<div class="row-meta">' + esc(u.email) + ' · ' + esc(ROLE_AZ[u.role] || u.role) +
-                  (u.city ? ' · ' + esc(u.city) : '') + '</div>' +
-                '<div class="row-meta">Qeydiyyat: ' + esc(fmtDay(u.createdAt)) + '</div>' +
-                (u.role !== 'ADMIN'
-                  ? '<button class="btn btn-sm ' + (u.banned ? 'btn-ghost' : 'btn-danger') + ' ban-btn" ' +
-                      'data-id="' + u.id + '" data-banned="' + (u.banned ? 'true' : 'false') + '" style="margin-top:10px">' +
-                      (u.banned ? 'Blokdan çıxar' : 'Blokla') + '</button>'
-                  : '') +
-              '</div></div>').join('')
-          : emptyState('Heç bir istifadəçi tapılmadı.', '✵')) +
-      '</div>' +
+      '<div class="section-title">İstifadəçi siyahısı <span id="adminUserCount"></span></div>' +
+      '<div id="adminUsersBox"></div>' +
+      '<div class="section-title">Rəylər <span id="adminReviewTotal"></span></div>' +
+      '<div id="adminReviewsBox"></div>';
 
-      '<div class="section-title">Rəylər (' + reviews.length + ')</div>' +
-      '<div class="rows" id="adminReviewsBox">' +
-        (reviews.length
-          ? reviews.map(r =>
-              '<div class="row-card"><div class="row-main">' + stars(r.rating) +
-                '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
-                  esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
-                '<div class="row-meta">Müştəri #' + esc(r.customerId) + ' → Rəssam #' + esc(r.artistId) +
-                  ' · ' + esc(fmtDay(r.createdAt)) + '</div>' +
-                (r.artistReply
-                  ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
-                      'border-radius:8px;font-size:13px"><b>Ustanın cavabı:</b> ' + esc(r.artistReply) + '</div>'
-                  : '') +
-                '<button class="btn btn-ghost btn-sm delete-review-btn" data-id="' + r.id + '" style="margin-top:10px">Sil</button>' +
-              '</div></div>').join('')
-          : emptyState('Heç bir rəy yoxdur.', '✧')) +
-      '</div>';
-
-    $$('.ban-btn', host).forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const userId = Number(btn.dataset.id);
-        const nextBanned = btn.dataset.banned !== 'true';
-        const done = withBusy(btn, nextBanned ? 'Bloklanır' : 'Açılır');
-        try {
-          await Api.admin.setBanned(userId, nextBanned);
-          toastOk(nextBanned ? 'İstifadəçi bloklandı.' : 'İstifadəçi blokdan çıxarıldı.');
-          this.pageAdmin(host);
-        } catch (err) {
-          toastErr(err.message);
-          done();
-        }
-      });
+    this.pagedList({
+      box: $('#adminUsersBox', host),
+      fetch: (page) => Api.admin.users(page),
+      empty: emptyState('Heç bir istifadəçi tapılmadı.', '✵'),
+      render: (u) =>
+        '<div class="row-card"><div class="row-main">' +
+          '<b>' + esc(u.fullName || '(adsız)') + '</b>' +
+          (u.banned ? ' <span class="badge CANCELLED">Bloklanıb</span>' : '') +
+          (u.emailVerified ? ' <span class="badge COMPLETED">Email ✓</span>' : '') +
+          '<div class="row-meta">' + esc(u.email) + ' · ' + esc(ROLE_AZ[u.role] || u.role) +
+            (u.city ? ' · ' + esc(u.city) : '') + '</div>' +
+          '<div class="row-meta">Qeydiyyat: ' + esc(fmtDay(u.createdAt)) + '</div>' +
+          (u.role !== 'ADMIN'
+            ? '<button class="btn btn-sm ' + (u.banned ? 'btn-ghost' : 'btn-danger') + ' ban-btn" ' +
+                'data-id="' + u.id + '" data-banned="' + (u.banned ? 'true' : 'false') + '" style="margin-top:10px">' +
+                (u.banned ? 'Blokdan çıxar' : 'Blokla') + '</button>'
+            : '') +
+        '</div></div>',
+      onPage: (res) => {
+        const counter = $('#adminUserCount', host);
+        if (counter) counter.textContent = '(' + res.totalElements + ')';
+        this.bindOnce('.ban-btn', host, async (btn) => {
+          const userId = Number(btn.dataset.id);
+          const nextBanned = btn.dataset.banned !== 'true';
+          const done = withBusy(btn, nextBanned ? 'Bloklanır' : 'Açılır');
+          try {
+            await Api.admin.setBanned(userId, nextBanned);
+            toastOk(nextBanned ? 'İstifadəçi bloklandı.' : 'İstifadəçi blokdan çıxarıldı.');
+            this.pageAdmin(host);
+          } catch (err) {
+            toastErr(err.message);
+            done();
+          }
+        });
+      }
     });
 
-    $$('.delete-review-btn', host).forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const reviewId = Number(btn.dataset.id);
-        const done = withBusy(btn, 'Silinir');
-        try {
-          await Api.admin.deleteReview(reviewId);
-          toastOk('Rəy silindi.');
-          this.pageAdmin(host);
-        } catch (err) {
-          toastErr(err.message);
-          done();
-        }
-      });
+    this.pagedList({
+      box: $('#adminReviewsBox', host),
+      fetch: (page) => Api.admin.reviews(page),
+      empty: emptyState('Heç bir rəy yoxdur.', '✧'),
+      render: (r) =>
+        '<div class="row-card"><div class="row-main">' + stars(r.rating) +
+          '<div style="margin-top:6px;color:var(--ink-dim);font-size:13.5px">' +
+            esc(r.comment || '(şərh yazılmayıb)') + '</div>' +
+          '<div class="row-meta">Müştəri #' + esc(r.customerId) + ' → Rəssam #' + esc(r.artistId) +
+            ' · ' + esc(fmtDay(r.createdAt)) + '</div>' +
+          (r.artistReply
+            ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-soft,rgba(0,0,0,.03));' +
+                'border-radius:8px;font-size:13px"><b>Ustanın cavabı:</b> ' + esc(r.artistReply) + '</div>'
+            : '') +
+          '<button class="btn btn-ghost btn-sm delete-review-btn" data-id="' + r.id + '" style="margin-top:10px">Sil</button>' +
+        '</div></div>',
+      onPage: (res) => {
+        const counter = $('#adminReviewTotal', host);
+        if (counter) counter.textContent = '(' + res.totalElements + ')';
+        this.bindOnce('.delete-review-btn', host, async (btn) => {
+          const reviewId = Number(btn.dataset.id);
+          const done = withBusy(btn, 'Silinir');
+          try {
+            await Api.admin.deleteReview(reviewId);
+            toastOk('Rəy silindi.');
+            this.pageAdmin(host);
+          } catch (err) {
+            toastErr(err.message);
+            done();
+          }
+        });
+      }
     });
   }
 };
