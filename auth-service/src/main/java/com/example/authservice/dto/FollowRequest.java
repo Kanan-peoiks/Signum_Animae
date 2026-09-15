@@ -10,9 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FollowRequest {
 
-    @NotNull(message = "Müştəri id-si boş ola bilməz.")
-    private Long customerId;
-
     @NotNull(message = "Usta id-si boş ola bilməz.")
     private Long artistId;
 }

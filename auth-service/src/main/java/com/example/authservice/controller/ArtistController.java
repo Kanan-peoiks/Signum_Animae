@@ -1,10 +1,12 @@
 package com.example.authservice.controller;
 
+import com.example.authservice.config.GatewayHeaders;
 import com.example.authservice.dto.ArtistProfileDto;
 import com.example.authservice.dto.PageParams;
 import com.example.authservice.dto.PageResponse;
 import com.example.authservice.dto.UpdateArtistProfileRequest;
 import com.example.authservice.dto.UpdateArtistRatingRequest;
+import com.example.authservice.security.AccessGuard;
 import com.example.authservice.service.ArtistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +51,10 @@ public class ArtistController {
     }
 
     @GetMapping("/{userId}/views")
-    public ResponseEntity<Long> getViewCount(@PathVariable Long userId) {
+    public ResponseEntity<Long> getViewCount(
+            @PathVariable Long userId,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(userId, callerId);
         return ResponseEntity.ok(artistService.getViewCount(userId));
     }
 
@@ -60,8 +65,11 @@ public class ArtistController {
     }
 
     @PatchMapping("/{userId}")
-    public ResponseEntity<ArtistProfileDto> updateMyProfile(@PathVariable Long userId,
-                                                             @Valid @RequestBody UpdateArtistProfileRequest request) {
+    public ResponseEntity<ArtistProfileDto> updateMyProfile(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateArtistProfileRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(userId, callerId);
         return ResponseEntity.ok(artistService.updateProfile(userId, request));
     }
 }

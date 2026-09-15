@@ -5,6 +5,7 @@ import com.example.notificationservice.client.dto.InternalUserContactDto;
 import com.example.notificationservice.dto.NotificationRequest;
 import com.example.notificationservice.model.Notification;
 import com.example.notificationservice.repo.NotificationRepository;
+import com.example.notificationservice.security.AccessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -54,9 +55,10 @@ public class NotificationService {
         return notificationRepository.countUnread(userId);
     }
 
-    public boolean markAsRead(Long id) {
+    public boolean markAsRead(Long id, Long callerId) {
         return notificationRepository.findById(id)
                 .map(n -> {
+                    AccessGuard.requireSelf(n.getUserId(), callerId);
                     n.setRead(true);
                     notificationRepository.save(n);
                     return true;

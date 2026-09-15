@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(NotOwnerException.class)
+    public ResponseEntity<ErrorResponse> handleNotOwner(NotOwnerException ex) {
+        return build(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     private ResponseEntity<ErrorResponse> build(String message, HttpStatus status) {
         return ResponseEntity.status(status).body(new ErrorResponse(message, status.value()));
     }

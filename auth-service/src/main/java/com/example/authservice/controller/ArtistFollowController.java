@@ -1,7 +1,9 @@
 package com.example.authservice.controller;
 
+import com.example.authservice.config.GatewayHeaders;
 import com.example.authservice.dto.ArtistProfileDto;
 import com.example.authservice.dto.FollowRequest;
+import com.example.authservice.security.AccessGuard;
 import com.example.authservice.service.ArtistFollowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,19 +21,26 @@ public class ArtistFollowController {
     private final ArtistFollowService artistFollowService;
 
     @PostMapping
-    public ResponseEntity<Void> follow(@Valid @RequestBody FollowRequest request) {
-        artistFollowService.follow(request.getCustomerId(), request.getArtistId());
+    public ResponseEntity<Void> follow(
+            @Valid @RequestBody FollowRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        artistFollowService.follow(callerId, request.getArtistId());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> unfollow(@RequestParam Long customerId, @RequestParam Long artistId) {
-        artistFollowService.unfollow(customerId, artistId);
+    public ResponseEntity<Void> unfollow(
+            @RequestParam Long artistId,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        artistFollowService.unfollow(callerId, artistId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<ArtistProfileDto>> followedArtists(@PathVariable Long customerId) {
+    public ResponseEntity<List<ArtistProfileDto>> followedArtists(
+            @PathVariable Long customerId,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(customerId, callerId);
         return ResponseEntity.ok(artistFollowService.followedArtists(customerId));
     }
 
@@ -41,7 +50,9 @@ public class ArtistFollowController {
     }
 
     @GetMapping("/exists")
-    public ResponseEntity<Boolean> isFollowing(@RequestParam Long customerId, @RequestParam Long artistId) {
-        return ResponseEntity.ok(artistFollowService.isFollowing(customerId, artistId));
+    public ResponseEntity<Boolean> isFollowing(
+            @RequestParam Long artistId,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(artistFollowService.isFollowing(callerId, artistId));
     }
 }

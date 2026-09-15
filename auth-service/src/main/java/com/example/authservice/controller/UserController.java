@@ -1,9 +1,11 @@
 package com.example.authservice.controller;
 
+import com.example.authservice.config.GatewayHeaders;
 import com.example.authservice.dto.InternalUserContactDto;
 import com.example.authservice.dto.InternalUserSummaryDto;
 import com.example.authservice.dto.UpdateUserProfileRequest;
 import com.example.authservice.dto.UserProfileDto;
+import com.example.authservice.security.AccessGuard;
 import com.example.authservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +21,19 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserProfileDto> getUser(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUser(id, true));
+    public ResponseEntity<UserProfileDto> getUser(
+            @PathVariable Long id,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        boolean self = callerId != null && callerId.equals(id);
+        return ResponseEntity.ok(userService.getUser(id, self));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<UserProfileDto> updateUser(@PathVariable Long id,
-                                                      @Valid @RequestBody UpdateUserProfileRequest request) {
+    public ResponseEntity<UserProfileDto> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserProfileRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(id, callerId);
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 

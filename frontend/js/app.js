@@ -132,10 +132,10 @@ const App = {
     const done = withBusy(btn, wasFollowing ? 'Çıxarılır' : 'İzlənilir');
     try {
       if (wasFollowing) {
-        await Api.follows.remove(Session.userId, artistId);
+        await Api.follows.remove(artistId);
         this.followingIds.delete(artistId);
       } else {
-        await Api.follows.add(Session.userId, artistId);
+        await Api.follows.add(artistId);
         this.followingIds.add(artistId);
       }
       done();
@@ -391,7 +391,7 @@ const App = {
       slots = await Api.availability.publicSlots(artistUserId).catch(() => []);
       [followers, isFollowing] = await Promise.all([
         Api.follows.count(artistUserId).catch(() => 0),
-        canFollow ? Api.follows.isFollowing(Session.userId, artistUserId).catch(() => false) : false
+        canFollow ? Api.follows.isFollowing(artistUserId).catch(() => false) : false
       ]);
       if (canFollow) {
         if (isFollowing) this.followingIds.add(Number(artistUserId));
@@ -501,8 +501,6 @@ const App = {
               tattooConceptUrl: $('#bUrl', ov).value.trim(),
               estimatedPrice: Number($('#bPrice', ov).value) || null
             });
-            notifyQuietly(artist.userId, '', 'Yeni sifariş',
-              (Session.data.fullName || 'Bir müştəri') + ' sizə sifariş göndərdi.');
             close();
             toastOk('Sifariş göndərildi.');
             this.nav('bookings');
@@ -679,10 +677,7 @@ const App = {
   async changeStatus(bookingId, status, btn, backRoute) {
     const done = withBusy(btn, '');
     try {
-      const updated = await Api.bookings.setStatus(bookingId, status);
-      const peerId = Session.isArtist ? updated.customerId : updated.artistId;
-      notifyQuietly(peerId, '', 'Sifariş vəziyyəti dəyişdi',
-        esc(fmtDay(updated.bookingDate)) + ' tarixli sifariş → ' + (STATUS_AZ[status] || status));
+      await Api.bookings.setStatus(bookingId, status);
       toastOk('Vəziyyət yeniləndi: ' + (STATUS_AZ[status] || status));
       this.nav(backRoute);
     } catch (err) {

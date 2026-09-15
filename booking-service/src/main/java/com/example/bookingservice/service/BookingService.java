@@ -1,6 +1,8 @@
 package com.example.bookingservice.service;
 
 import com.example.bookingservice.client.AuthServiceClient;
+import com.example.bookingservice.client.NotificationServiceClient;
+import com.example.bookingservice.client.dto.NotificationRequest;
 import com.example.bookingservice.client.dto.InternalUserSummaryDto;
 import com.example.bookingservice.dto.BookingRequest;
 import com.example.bookingservice.dto.BookingResponse;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +30,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BookingService {
 
+    private static final DateTimeFormatter BOOKING_DAY =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    private static final Map<BookingStatus, String> STATUS_AZ = Map.of(
+            BookingStatus.PENDING, "Gözləyir",
+            BookingStatus.CONFIRMED, "Təsdiqlənib",
+            BookingStatus.COMPLETED, "Tamamlanıb",
+            BookingStatus.CANCELLED, "Ləğv edilib");
+
     private final BookingRepository bookingRepository;
     private final AuthServiceClient authServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     public BookingResponse createBooking(BookingRequest request, Long callerId) {
         Booking booking = Booking.builder()
@@ -42,6 +55,10 @@ public class BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+
+        notifyQuietly(saved.getArtistId(), "Yeni sifariş",
+                customerName(callerId) + " sizə sifariş göndərdi.");
+
         return mapToResponse(saved);
     }
 
@@ -100,7 +117,40 @@ public class BookingService {
 
         booking.setStatus(newStatus);
         Booking updated = bookingRepository.save(booking);
+
+        Long peerId = callerId.equals(updated.getCustomerId())
+                ? updated.getArtistId()
+                : updated.getCustomerId();
+        notifyQuietly(peerId, "Sifariş vəziyyəti dəyişdi",
+                updated.getBookingDate().format(BOOKING_DAY) + " tarixli sifariş → "
+                        + STATUS_AZ.getOrDefault(newStatus, newStatus.name()));
+
         return mapToResponse(updated);
+    }
+
+    private String customerName(Long customerId) {
+        try {
+            InternalUserSummaryDto summary = authServiceClient.getUserSummary(customerId);
+            if (summary != null && summary.getFullName() != null && !summary.getFullName().isBlank()) {
+                return summary.getFullName();
+            }
+        } catch (Exception ex) {
+            log.error("Müştərinin adı alınmadı (customerId={}): {}", customerId, ex.getMessage(), ex);
+        }
+        return "Bir müştəri";
+    }
+
+    private void notifyQuietly(Long userId, String title, String message) {
+        try {
+            notificationServiceClient.send(NotificationRequest.builder()
+                    .userId(userId)
+                    .title(title)
+                    .message(message)
+                    .sendEmail(true)
+                    .build());
+        } catch (Exception ex) {
+            log.error("Bildiriş göndərilmədi (userId={}, title={}): {}", userId, title, ex.getMessage(), ex);
+        }
     }
 
     public void updateEstimatedPrice(Long id, Double newPrice) {

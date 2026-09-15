@@ -204,13 +204,11 @@ const Api = {
   },
 
   follows: {
-    add:         (customerId, artistId) => POST('/api/v1/follows', { customerId, artistId }),
-    remove:      (customerId, artistId) =>
-                 DELETE('/api/v1/follows?customerId=' + customerId + '&artistId=' + artistId),
+    add:         (artistId) => POST('/api/v1/follows', { artistId }),
+    remove:      (artistId) => DELETE('/api/v1/follows?artistId=' + artistId),
     forCustomer: (customerId) => GET('/api/v1/follows/customer/' + customerId),
     count:       (artistId) => GET('/api/v1/follows/artist/' + artistId + '/count'),
-    isFollowing: (customerId, artistId) =>
-                 GET('/api/v1/follows/exists?customerId=' + customerId + '&artistId=' + artistId)
+    isFollowing: (artistId) => GET('/api/v1/follows/exists?artistId=' + artistId)
   },
 
   admin: {
@@ -225,16 +223,9 @@ const Api = {
   },
 
   notifications: {
-    send:      (payload) => POST('/api/v1/notifications/send', payload),
     forUser:   (userId, page = 0, size = PAGE_SIZE) =>
                GET('/api/v1/notifications/user/' + userId + '?page=' + page + '&size=' + size),
     unreadCount: (userId) => GET('/api/v1/notifications/user/' + userId + '/unread-count'),
     markRead:  (id) => PATCH('/api/v1/notifications/' + id + '/read')
   }
 };
-
-async function notifyQuietly(userId, userEmail, title, message) {
-  try {
-    await Api.notifications.send({ userId, title, message, sendEmail: true });
-  } catch (e) { /* susmaq */ }
-}

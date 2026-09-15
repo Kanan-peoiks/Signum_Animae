@@ -3,6 +3,7 @@ package com.example.authservice.service;
 import com.example.authservice.dto.ArtistProfileDto;
 import com.example.authservice.exception.AlreadyFollowingException;
 import com.example.authservice.exception.ArtistNotFoundException;
+import com.example.authservice.exception.NotOwnerException;
 import com.example.authservice.exception.UserNotFoundException;
 import com.example.authservice.model.ArtistFollow;
 import com.example.authservice.repo.ArtistFollowRepository;
@@ -26,6 +27,9 @@ public class ArtistFollowService {
 
     @Transactional
     public void follow(Long customerId, Long artistId) {
+        if (customerId == null) {
+            throw new NotOwnerException("Kimliyi təsdiqlənməyən istifadəçi usta izləyə bilməz.");
+        }
         if (!userRepository.existsById(customerId)) {
             throw new UserNotFoundException("İstifadəçi tapılmadı! ID: " + customerId);
         }
@@ -44,12 +48,18 @@ public class ArtistFollowService {
 
     @Transactional
     public void unfollow(Long customerId, Long artistId) {
+        if (customerId == null) {
+            throw new NotOwnerException("Kimliyi təsdiqlənməyən istifadəçi bu əməliyyatı edə bilməz.");
+        }
         artistFollowRepository.findByCustomerIdAndArtistId(customerId, artistId)
                 .ifPresent(artistFollowRepository::delete);
     }
 
     @Transactional(readOnly = true)
     public boolean isFollowing(Long customerId, Long artistId) {
+        if (customerId == null) {
+            return false;
+        }
         return artistFollowRepository.existsByCustomerIdAndArtistId(customerId, artistId);
     }
 
