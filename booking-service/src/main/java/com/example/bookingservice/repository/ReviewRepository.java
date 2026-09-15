@@ -12,13 +12,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByBookingId(Long bookingId);
     List<Review> findByArtistId(Long artistId);
 
-    /** Səhifələnmiş variant. Sıralama Pageable-dən gəlir və MƏCBURIDIR:
-     *  ORDER BY olmadan verilənlər bazası sətirləri istənilən sıra ilə qaytara bilər,
-     *  bu da səhifələr arasında təkrar/itkən sətir deməkdir. */
     Page<Review> findByArtistId(Long artistId, Pageable pageable);
 
-    /** Platforma üzrə orta reytinq. Heç bir rəy yoxdursa AVG null qaytarır,
-     *  ona görə primitiv double yox, Double. */
     @Query("SELECT AVG(r.rating) FROM Review r")
     Double averageRating();
 }

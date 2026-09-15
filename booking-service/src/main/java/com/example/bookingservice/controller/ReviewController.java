@@ -27,20 +27,17 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.createReview(request, callerId));
     }
 
-    /** Səhifələnmişdir: ?page=0&size=20, cavab PageResponse ("content" içində). */
     @GetMapping("/artist/{artistId}")
     public ResponseEntity<PageResponse<ReviewResponse>> getReviewsForArtist(
             @PathVariable Long artistId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        // id DESC əlavə təminatdır: eyni saniyədə yazılmış iki rəyin sırası da sabit qalsın.
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
         return ResponseEntity.ok(PageResponse.from(
                 reviewService.getReviewsForArtist(artistId, PageParams.of(page, size, sort))));
     }
 
-    /** Usta öz rəyinə ictimai cavab yazır/redaktə edir. */
     @PatchMapping("/{id}/reply")
     public ResponseEntity<ReviewResponse> replyToReview(
             @PathVariable Long id,

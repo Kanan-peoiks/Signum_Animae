@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Layihədaxili texniki qeydlər (koddan çıxarılmış şərhlər) - GitHub-a getmir
+NOTES.md
+
+### Claude-a verilən tapşırıq faylları - GitHub-a getmir
+Claude outputs/

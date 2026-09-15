@@ -5,11 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Server-to-server only (see UserController's /internal/{id}) - deliberately excludes
- * email and everything else a caller doesn't need just to resolve "what's their
- * display name". Never returned to the frontend.
- */
 @Data
 @Builder
 @NoArgsConstructor

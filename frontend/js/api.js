@@ -1,22 +1,12 @@
 /* ============================================================
    api.js — backend ilə bütün əlaqə burada cəmlənib.
-
-   VACİB: bütün REST sorğular gateway (8080) üzərindən gedir.
-   YALNIZ WebSocket birbaşa chat-service-ə (8083) qoşulur, çünki
-   Spring Cloud Gateway Server MVC-nin HTTP proxy handler-i
-   WebSocket "upgrade" əməliyyatını dəstəkləmir.
    ============================================================ */
 
 const API_BASE = 'http://localhost:8080';
-/* Səhifələnmiş siyahılarda bir dəfəyə çəkilən element sayı. Backend 100-dən
-   böyük ölçünü onsuz da 100-ə endirir (bax PageParams). */
 const PAGE_SIZE = 12;
-/* Söhbətdə bir dəfəyə çəkilən mesaj sayı - siyahılardan böyükdür, çünki
-   mesajlar qısadır və söhbət açılanda kifayət qədər kontekst görünməlidir. */
 const CHAT_PAGE_SIZE = 30;
 const WS_URL   = 'ws://localhost:8083/ws-tattoo';
 
-/* ---------- sessiya yaddaşı ---------- */
 const SESSION_KEY = 'signum.session';
 
 const Session = {
@@ -27,7 +17,6 @@ const Session = {
       const raw = localStorage.getItem(SESSION_KEY);
       if (raw) this.data = JSON.parse(raw);
     } catch (e) {
-      // Şəxsi rejim / bloklanmış storage — yaddaşsız davam edirik.
       this.data = null;
     }
     return this.data;
@@ -56,17 +45,10 @@ const Session = {
   get isAdmin()  { return this.role === 'ADMIN'; }
 };
 
-/* ---------- aşağı səviyyəli sorğu ---------- */
 class ApiError extends Error {
   constructor(message, status) { super(message); this.status = status; }
 }
 
-/* Sessiya bitəndə (401/403) çox vaxt bir neçə sorğu paralel işləyir və
-   HAMISI eyni anda 401 qaytarır - hər biri öz catch-ində toastErr çağırsa,
-   ekranda üst-üstə bir neçə "sessiya bitib" bildirişi yığılır. Bunun
-   qarşısını almaq üçün: son auth-xətasının vaxtını qeyd edirik, toastErr
-   (ui.js) isə bu qısa pəncərədə yeni "err" toast göstərmir - yalnız
-   signum:unauthorized qlobal handler-in öz mesajı görünür. */
 let lastAuthFailureAt = 0;
 
 async function request(method, path, body, opts = {}) {
@@ -75,7 +57,6 @@ async function request(method, path, body, opts = {}) {
 
   let payload;
   if (body instanceof FormData) {
-    // Content-Type-ı brauzer özü qoyur (boundary ilə birlikdə) — əl ilə qoysaq sınar.
     payload = body;
   } else if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -89,22 +70,12 @@ async function request(method, path, body, opts = {}) {
     throw new ApiError('Serverə qoşulmaq olmadı. Servislərin işlədiyini yoxla.', 0);
   }
 
-  /* 401 və 403 EYNİ şey deyil:
-       401 - kimliyimiz tanınmır (token yoxdur, etibarsızdır, vaxtı bitib) → çıxış etməliyik
-       403 - kimliyimiz tanınır, sadəcə bu əməliyyata icazə yoxdur (məsələn başqasının
-             söhbəti, admin olmayan istifadəçi admin yolunda) → yalnız xətanı göstəririk
-
-     Əvvəl ikisi də sessiyanı silirdi: bir dəfə "bu söhbət sizə aid deyil" cavabı almaq
-     istifadəçini tamamilə sistemdən çıxarırdı. Gateway artıq bu iki halı ayrı statusla
-     qaytarır - bax gateway-service AuthErrorConfig. */
   if (res.status === 401 || res.status === 403) {
     const authText = await res.text();
     let authData = null;
     if (authText) { try { authData = JSON.parse(authText); } catch (e) { authData = authText; } }
     const serverMessage = (authData && authData.message) ? authData.message : null;
 
-    // silentAuth: giriş/qeydiyyat kimi hazırda sessiyası OLMAYAN axınlar. Orada 401
-    // "sessiya bitdi" demir - "şifrə yanlışdır" və ya "hesab bloklanıb" deməkdir.
     if (opts.silentAuth) {
       throw new ApiError(serverMessage || 'Giriş alınmadı.', res.status);
     }
@@ -140,24 +111,16 @@ const DELETE = (p, o)    => request('DELETE', p, undefined, o);
    ============================================================ */
 const Api = {
 
-  /* ---- auth-service ---- */
   auth: {
-    // silentAuth: bu iki çağırış giriş ekranından gedir - 401/403 burada "sessiya bitdi"
-    // yox, "şifrə yanlışdır"/"hesab bloklanıb" deməkdir.
     register: (payload) => POST('/api/v1/auth/register', payload, { silentAuth: true }),
     login:    (payload) => POST('/api/v1/auth/login', payload, { silentAuth: true }),
-    // Aşağıdakıların hamsı /api/v1/auth/** altındadır - yni gateway-də də,
-    // auth-service-də də onsuz da permitAll, token tələb etmir.
     forgotPassword:   (email) => POST('/api/v1/auth/forgot-password', { email }),
     resetPassword:    (token, newPassword) => POST('/api/v1/auth/reset-password', { token, newPassword }),
     verifyEmail:      (token) => GET('/api/v1/auth/verify-email?token=' + encodeURIComponent(token)),
     sendVerification: (email) => POST('/api/v1/auth/send-verification', { email })
   },
 
-  /* ---- auth-service: rəssam profilləri ---- */
   artists: {
-    /* Səhifələnmiş cavab qaytarır:
-       { content: [...], totalElements, totalPages, number, size, last } */
     search(city, style, minRating, minExperience, sortBy, page = 0, size = PAGE_SIZE) {
       const q = new URLSearchParams();
       if (city)         q.set('city', city);
@@ -170,67 +133,51 @@ const Api = {
       return GET('/api/v1/artists/public/search?' + q.toString());
     },
     popular: (limit = 8) => GET('/api/v1/artists/public/popular?limit=' + limit),
-    // {userId} — rəssamın USER id-si (bütün sistemdə "artistId" elə budur)
     byUserId: (userId) => GET('/api/v1/artists/public/' + userId),
     updateProfile: (userId, payload) => PATCH('/api/v1/artists/' + userId, payload),
     viewCount: (userId) => GET('/api/v1/artists/' + userId + '/views')
   },
 
-  /* ---- auth-service: istifadəçi hesabı ---- */
   users: {
     get:    (id) => GET('/api/v1/users/' + id),
     update: (id, payload) => PATCH('/api/v1/users/' + id, payload)
   },
 
-  /* ---- booking-service ---- */
   bookings: {
     create:      (payload) => POST('/api/v1/bookings', payload),
     byId:        (id) => GET('/api/v1/bookings/' + id),
-    // Səhifələnmiş cavab ({ content, ... }), ən yeni bron əvvəldə sıralanır.
     forCustomer: (customerId, page = 0, size = PAGE_SIZE) =>
                  GET('/api/v1/bookings/customer/' + customerId + '?page=' + page + '&size=' + size),
     forArtist:   (artistId, page = 0, size = PAGE_SIZE) =>
                  GET('/api/v1/bookings/artist/' + artistId + '?page=' + page + '&size=' + size),
     setStatus:   (id, status) => PATCH('/api/v1/bookings/' + id + '/status', { status }),
-    /* Başqasının profilindəki "keçmiş tatuajlar" siyahısı - server artıq qiymət/qeyd
-       kimi məxfi sahələri kəsir (bax booking-service
-       BookingService.getCompletedSummaryForCustomer). */
     completedSummary: (customerId) => GET('/api/v1/bookings/customer/' + customerId + '/completed-summary'),
     artistStats: (artistId) => GET('/api/v1/bookings/artist/' + artistId + '/stats')
   },
 
-  /* ---- booking-service: uyğunluq təqvimi ---- */
   availability: {
     add:          (payload) => POST('/api/v1/availability', payload),
     forArtist:    (artistId) => GET('/api/v1/availability/artist/' + artistId),
     publicSlots:  (artistId) => GET('/api/v1/availability/artist/' + artistId + '/public'),
-    // Sahiblik artıq X-User-Id başlığından yoxlanılır - artistId göndərməyə ehtiyac yoxdur.
     setBooked:    (id, booked) => PATCH('/api/v1/availability/' + id + '/booked?booked=' + booked),
     remove:       (id) => DELETE('/api/v1/availability/' + id)
   },
 
-  /* ---- booking-service: rəylər ---- */
   reviews: {
     create:    (payload) => POST('/api/v1/reviews', payload),
-    // Səhifələnmiş cavab: { content, totalElements, totalPages, number, size, last }
     forArtist: (artistId, page = 0, size = PAGE_SIZE) =>
                GET('/api/v1/reviews/artist/' + artistId + '?page=' + page + '&size=' + size),
     reply:     (reviewId, payload) => PATCH('/api/v1/reviews/' + reviewId + '/reply', payload)
   },
 
-  /* ---- chat-service ---- */
   chat: {
-    // bookingId üzrə idempotent: eyni bron üçün həmişə eyni otağı qaytarır
     getOrCreateRoom: (payload) => POST('/api/v1/chat/rooms', payload),
     room:            (roomId) => GET('/api/v1/chat/rooms/' + roomId),
     roomsForCustomer:(customerId) => GET('/api/v1/chat/rooms/customer/' + customerId),
     roomsForArtist:  (artistId) => GET('/api/v1/chat/rooms/artist/' + artistId),
-    /* Tərs səhifələmə: page=0 ƏN YENİ mesajlardır, page artdıqca köhnəyə gedirik.
-       Səhifənin içindəki sıra normaldır (köhnədən yeniyə) - backend çevirib göndərir. */
     history:         (roomId, page = 0, size = CHAT_PAGE_SIZE) =>
                      GET('/api/v1/chat/rooms/' + roomId + '/messages?page=' + page + '&size=' + size),
     send:            (roomId, payload) => POST('/api/v1/chat/rooms/' + roomId + '/messages', payload),
-    // Kim oxuduğu artıq gövdədən/parametrdən yox, gateway-in X-User-Id başlığından bilinir.
     markRead:        (roomId) => PATCH('/api/v1/chat/rooms/' + roomId + '/messages/read'),
     respondToOffer:  (roomId, messageId, userId, accept) =>
                       PATCH('/api/v1/chat/rooms/' + roomId + '/messages/' + messageId + '/offer', { userId, accept }),
@@ -239,7 +186,6 @@ const Api = {
     offerStats:      (artistId) => GET('/api/v1/chat/rooms/artist/' + artistId + '/offer-stats')
   },
 
-  /* ---- ai-service ---- */
   ai: {
     generateIdea: (payload) => POST('/api/v1/ai/generate-idea', payload),
     analyzeImage(file, prompt) {
@@ -250,16 +196,13 @@ const Api = {
     }
   },
 
-  /* ---- booking-service: AI Studiya tarixçəsi (saxlanmış ideyalar) ---- */
   aiIdeas: {
     save:        (payload) => POST('/api/v1/ai-ideas', payload),
     forCustomer: (customerId) => GET('/api/v1/ai-ideas/customer/' + customerId),
-    // Eyni səbəbdən burada da customerId göndərilmir.
     link:        (id, bookingId) => PATCH('/api/v1/ai-ideas/' + id + '/link?bookingId=' + bookingId),
     remove:      (id) => DELETE('/api/v1/ai-ideas/' + id)
   },
 
-  /* ---- usta izləmə / favoritlər (auth-service) ---- */
   follows: {
     add:         (customerId, artistId) => POST('/api/v1/follows', { customerId, artistId }),
     remove:      (customerId, artistId) =>
@@ -270,46 +213,27 @@ const Api = {
                  GET('/api/v1/follows/exists?customerId=' + customerId + '&artistId=' + artistId)
   },
 
-  /* ---- admin moderasiya paneli (auth-service + booking-service) ---- */
   admin: {
-    // Hər ikisi səhifələnmiş cavab qaytarır ({ content, ... }), ən yenilər əvvəldə.
     users:         (page = 0, size = PAGE_SIZE) =>
                    GET('/api/v1/admin/users?page=' + page + '&size=' + size),
     setBanned:     (userId, banned) => PATCH('/api/v1/admin/users/' + userId + '/ban?banned=' + banned),
     reviews:       (page = 0, size = PAGE_SIZE) =>
                    GET('/api/v1/admin/reviews?page=' + page + '&size=' + size),
     deleteReview:  (id) => DELETE('/api/v1/admin/reviews/' + id),
-    // Platforma statistikası iki servisdən gəlir - yollar qəsdən fərqlidir,
-    // eyni olsaydı gateway route-ları toqquşardı.
     userStats:     () => GET('/api/v1/admin/stats/users'),
     bookingStats:  () => GET('/api/v1/admin/stats/bookings')
   },
 
-  /* ---- notification-service ---- */
   notifications: {
     send:      (payload) => POST('/api/v1/notifications/send', payload),
-    // Səhifələnmiş cavab ({ content, ... }), ən yeni bildiriş əvvəldə.
     forUser:   (userId, page = 0, size = PAGE_SIZE) =>
                GET('/api/v1/notifications/user/' + userId + '?page=' + page + '&size=' + size),
-    // Yan paneldəki nişan: siyahı səhifələndiyi üçün oxunmamışları serverdə sayırıq.
     unreadCount: (userId) => GET('/api/v1/notifications/user/' + userId + '/unread-count'),
     markRead:  (id) => PATCH('/api/v1/notifications/' + id + '/read')
   }
 };
 
-/* Bildiriş göndərmək arxa planda baş verir — uğursuz olsa əsas
-   əməliyyatı pozmamalıdır, ona görə səhv udulur. E-poçt ünvanını server özü
-   həll edir (bax notifyQuietly-nin daxilindəki qeydə); notification-service
-   tərəfində real SMTP (MAIL_USERNAME/MAIL_PASSWORD env dəyişənləri)
-   qurulmayıbsa e-poçt göndərilməsi öz-özünə səssizcə uğursuz olur, amma
-   in-app bildiriş hər zaman yaranır. */
 async function notifyQuietly(userId, userEmail, title, message) {
-  // E-poçt ünvanını artıq özümüz çəkmirik: notification-service bunu server
-  // tərəfində, auth-service-dən, öz daxili kanalı ilə həll edir (bax
-  // NotificationService.sendNotification). Əvvəllər bunu Api.users.get(userId)
-  // ilə brauzerdə çəkirdik ki, başqasının e-poçtunu ifşa edirdi (server indi
-  // özününkü olmayan profil üçün e-poçtu heç göndərmir də) - userEmail arqumenti
-  // geriyə uyğunluq üçün saxlanılıb, amma artıq istifadə olunmur.
   try {
     await Api.notifications.send({ userId, title, message, sendEmail: true });
   } catch (e) { /* susmaq */ }

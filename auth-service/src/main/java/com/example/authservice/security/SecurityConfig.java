@@ -1,6 +1,5 @@
 package com.example.authservice.security;
 
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -28,12 +27,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/**",
-                                "/api/v1/admin/**",  // gateway already gates this with hasRole("ADMIN")
+                                "/api/v1/admin/**",
                                 "/api/v1/artists/public/**",
                                 "/api/v1/artists/internal/**",
-                                "/api/v1/artists/**",  // includes PATCH /{userId} self-edit and /{userId}/views
-                                "/api/v1/users/**",    // self-service profile edit - same trust boundary reasoning
-                                "/api/v1/follows/**"   // müştərinin usta izləmələri - eyni etibar sərhədi
+                                "/api/v1/artists/**",
+                                "/api/v1/users/**",
+                                "/api/v1/follows/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

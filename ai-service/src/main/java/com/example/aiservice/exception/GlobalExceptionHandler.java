@@ -6,9 +6,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/** ai-service had no exception handling of its own before - a bad request or a Gemini
- *  API failure fell through to Spring Boot's default whitebox error page instead of the
- *  clean JSON error shape every other service in this project already returns. */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

@@ -11,8 +11,6 @@ public class ReviewRequest {
     @NotNull(message = "bookingId tələb olunur")
     private Long bookingId;
 
-    /** Artıq etibar edilmir - sahibliyi ReviewService callerId ilə (X-User-Id-dən) yoxlayır,
-     *  bax ReviewController/ReviewService. Köhnə klientlərlə uyğunluq üçün sahə saxlanılıb. */
     private Long customerId;
 
     @NotNull(message = "Reytinq tələb olunur")

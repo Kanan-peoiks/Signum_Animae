@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-/** Mirrors just the fields chat-service needs from booking-service's BookingResponse. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -5,12 +5,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/** Şifrə sıfırlama və email təsdiqi tokenləri eyni cədvəldə saxlanılır - fərq yalnız
- *  {@link AuthTokenType}-dadır. İkisinin də həyat dövrü eynidir (bir dəfəlik, vaxtı
- *  bitən), ayrı-ayrı cədvəl eyni məntiqi iki yerdə təkrarlamaq demək olardı.
- *
- *  Yeni cədvəldir, ona görə NOT NULL sütunlar problemsizdir - ddl-auto=update yalnız
- *  MÖVCUD dolu cədvələ NOT NULL sütun əlavə edəndə sınır. */
 @Entity
 @Table(name = "auth_tokens", indexes = @Index(name = "idx_auth_token_user", columnList = "user_id"))
 @Getter

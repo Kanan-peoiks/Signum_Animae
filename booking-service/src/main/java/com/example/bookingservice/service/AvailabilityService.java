@@ -13,16 +13,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** Ustanın uyğunluq təqvimi - məlumat xarakterlidir, sifariş yaradılmasını
- *  məcburi məhdudlaşdırmır (BookingService.createBooking-a toxunmur). */
 @Service
 @RequiredArgsConstructor
 public class AvailabilityService {
 
     private final AvailabilitySlotRepository availabilitySlotRepository;
 
-    /** artistId doğrulanmış çağırandan götürülür - usta yalnız ÖZ təqviminə
-     *  pəncərə əlavə edə bilər. */
     public AvailabilitySlotResponse addSlot(AvailabilitySlotRequest request, Long callerId) {
         if (!request.getSlotEnd().isAfter(request.getSlotStart())) {
             throw new IllegalArgumentException("Bitmə vaxtı başlanğıcdan sonra olmalıdır.");
@@ -35,14 +31,12 @@ public class AvailabilityService {
         return mapToResponse(availabilitySlotRepository.save(slot));
     }
 
-    /** Ustanın öz idarəetmə görünüşü - keçmiş və dolu olanlar da daxil, hamısı. */
     public List<AvailabilitySlotResponse> getSlotsForArtist(Long artistId) {
         return availabilitySlotRepository.findByArtistIdOrderBySlotStartAsc(artistId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    /** Müştəriyə göstərilən ictimai siyahı - yalnız gələcək və boş pəncərələr. */
     public List<AvailabilitySlotResponse> getPublicSlots(Long artistId) {
         return availabilitySlotRepository
                 .findByArtistIdAndBookedFalseAndSlotStartAfterOrderBySlotStartAsc(artistId, LocalDateTime.now())

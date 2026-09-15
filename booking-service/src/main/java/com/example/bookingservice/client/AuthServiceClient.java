@@ -9,20 +9,12 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
-/**
- * Direct service-to-service calls to auth-service, bypassing the gateway entirely
- * (server-to-server traffic, not a request carrying a user's JWT). Both endpoints are
- * under /internal/ on auth-service and require the shared X-Internal-Token, attached
- * automatically to every call by AuthServiceFeignConfig.
- */
 @FeignClient(name = "auth-service", url = "${services.auth-service.url}", configuration = AuthServiceFeignConfig.class)
 public interface AuthServiceClient {
 
     @PatchMapping("/api/v1/artists/internal/{artistId}/rating")
     void updateArtistRating(@PathVariable("artistId") Long artistId, @RequestBody UpdateArtistRatingRequest request);
 
-    /** Used to resolve a past tattoo's artist display name server-side - see
-     *  BookingService.getCompletedSummaryForCustomer. */
     @GetMapping("/api/v1/users/internal/{id}")
     InternalUserSummaryDto getUserSummary(@PathVariable("id") Long id);
 }

@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** Usta üçün analitika paneli - sadəcə booking-service-in gördüyü hissə (sifariş
- *  sayları və qazanc). Chat-service-in təklif statistikası ayrıca sorğu ilə gəlir,
- *  frontend ikisini birləşdirir - servislər arası əlavə Feign asılılığı yaratmamaq üçün. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

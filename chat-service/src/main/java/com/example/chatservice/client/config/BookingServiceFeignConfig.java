@@ -5,8 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Attaches the shared internal-service token to every call this service makes to
- *  booking-service's /internal/ endpoints (see booking-service's TrustedRequestFilter). */
 @Configuration
 public class BookingServiceFeignConfig {
 

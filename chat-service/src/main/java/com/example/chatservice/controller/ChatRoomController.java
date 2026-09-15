@@ -13,12 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * ChatController ilə eyni etibar modeli: çağıranın kimliyi yalnız gateway-in qoyduğu
- * X-User-Id başlığından gəlir, yoldakı və ya gövdədəki id-lərdən yox. Əvvəl bu
- * endpoint-lərdə heç bir yoxlama yox idi - istənilən istifadəçi
- * /rooms/customer/{başqasının id-si} ilə özgə söhbət siyahısını görə bilirdi.
- */
 @RestController
 @RequestMapping("/api/v1/chat/rooms")
 @RequiredArgsConstructor
@@ -27,9 +21,6 @@ public class ChatRoomController {
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
 
-    /** Get-or-create: idempotent by bookingId, safe to call every time a chat screen
-     *  opens. The caller must actually be one of the two parties named in the request -
-     *  can't open (or "discover") a room pretending to be someone else. */
     @PostMapping
     public ResponseEntity<ChatRoomResponse> getOrCreateRoom(
             @Valid @RequestBody ChatRoomRequest request,
@@ -58,8 +49,6 @@ public class ChatRoomController {
         return ResponseEntity.ok(chatRoomService.getRoomsForArtist(artistId, callerId));
     }
 
-    /** Usta analitika paneli - göndərdiyi qiymət təkliflərinin qəbul/rədd nisbəti.
-     *  Yalnız ustanın özü görə bilər. */
     @GetMapping("/artist/{artistId}/offer-stats")
     public ResponseEntity<OfferStatsResponse> getOfferStats(
             @PathVariable Long artistId,

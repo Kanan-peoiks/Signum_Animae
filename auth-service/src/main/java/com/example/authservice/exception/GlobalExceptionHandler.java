@@ -1,6 +1,5 @@
 package com.example.authservice.exception;
 
-
 import com.example.authservice.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +15,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserAlreadyExists(UserAlreadyExistsException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.CONFLICT.value()) // 409
+                .status(HttpStatus.CONFLICT.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
@@ -26,7 +25,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAlreadyFollowing(AlreadyFollowingException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.CONFLICT.value()) // 409
+                .status(HttpStatus.CONFLICT.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
@@ -36,7 +35,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.NOT_FOUND.value()) // 404
+                .status(HttpStatus.NOT_FOUND.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
@@ -46,7 +45,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleArtistNotFound(ArtistNotFoundException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.NOT_FOUND.value()) // 404
+                .status(HttpStatus.NOT_FOUND.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
@@ -56,7 +55,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidToken(InvalidTokenException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.BAD_REQUEST.value()) // 400
+                .status(HttpStatus.BAD_REQUEST.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -66,7 +65,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.UNAUTHORIZED.value()) // 401
+                .status(HttpStatus.UNAUTHORIZED.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -90,7 +89,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserBanned(UserBannedException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message(ex.getMessage())
-                .status(HttpStatus.FORBIDDEN.value()) // 403
+                .status(HttpStatus.FORBIDDEN.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -100,7 +99,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .message("Gözlənilməz xəta baş verdi: " + ex.getMessage())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value()) // 500
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

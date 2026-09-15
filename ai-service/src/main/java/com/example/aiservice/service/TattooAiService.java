@@ -126,13 +126,6 @@ public class TattooAiService {
         }
     }
 
-    /**
-     * Gemini-nin 503 (Service Unavailable) və 429 (Too Many Requests) cavabları
-     * müvəqqətidir - server anlıq yüklüdür və ya dəqiqəlik kvota dolub. Tək bir
-     * sorğuda uğursuz sayıb istifadəçiyə xəta göstərmək əvəzinə qısa fasilə ilə
-     * bir neçə dəfə təkrar cəhd edirik; praktikada ikinci-üçüncü cəhd adətən keçir.
-     * 4xx (məsələn səhv API açarı) təkrarlanmır - onu təkrar etmək mənasızdır.
-     */
     private static final int MAX_ATTEMPTS = 3;
     private static final long[] BACKOFF_MS = { 1200L, 2800L };
 
@@ -192,7 +185,6 @@ public class TattooAiService {
             Thread.currentThread().interrupt();
         }
     }
-
 
     private String describeFailure(Exception error) {
         if (error instanceof WebClientResponseException wex) {

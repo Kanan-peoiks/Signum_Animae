@@ -36,16 +36,6 @@ public class ChatMessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final BookingServiceClient bookingServiceClient;
 
-    /**
-     * Single entry point for sending a message, used by BOTH the WebSocket
-     * controller and the plain REST fallback controller. It persists the
-     * message and broadcasts it to /topic/rooms/{roomId} exactly once, so
-     * callers must NOT broadcast again themselves.
-     *
-     * @param callerId the VERIFIED sender (X-User-Id from the gateway for REST, or the
-     *                 JWT-verified id from the WS handshake) - request.getSenderId() is
-     *                 never trusted, so nobody can send a message "as" someone else.
-     */
     public ChatMessageResponse saveMessage(Long roomId, ChatMessageRequest request, Long callerId) {
         ChatRoom room = chatRoomService.findRoomOrThrow(roomId);
         requireParticipant(room, callerId);
@@ -66,13 +56,6 @@ public class ChatMessageService {
         return persistAndBroadcast(message);
     }
 
-    /**
-     * A customer accepts or rejects an artist's OFFER message. Accepting is what
-     * makes chat-based price negotiation actually mean something: it calls
-     * booking-service (via Feign) to update Booking.estimatedPrice to the agreed
-     * amount, and posts a SYSTEM message into the room so both sides see the
-     * outcome, instead of the OFFER just sitting there as decorative text.
-     */
     public ChatMessageResponse respondToOffer(Long roomId, Long messageId, boolean accept, Long callerId) {
         ChatRoom room = chatRoomService.findRoomOrThrow(roomId);
         requireParticipant(room, callerId);
@@ -103,9 +86,6 @@ public class ChatMessageService {
             try {
                 bookingServiceClient.updatePrice(room.getBookingId(), priceRequest);
             } catch (Exception ex) {
-                // The offer itself is already saved as ACCEPTED - a booking-service
-                // hiccup shouldn't undo that. Same "never let a downstream call roll
-                // back what already succeeded" approach as ReviewService.createReview.
                 log.error("Bron qiyməti yenilənmədi (bookingId={}, yeni qiymət={}): {}",
                         room.getBookingId(), offer.getAmount(), ex.getMessage(), ex);
             }
@@ -124,18 +104,13 @@ public class ChatMessageService {
         return ChatMessageResponse.fromEntity(savedOffer);
     }
 
-    /** Qaytarılan səhifə TƏRS sıradadır (ən yeni əvvəldə) - kontroller onu ekrana
-     *  verməzdən əvvəl çevirir, bax ChatController.getHistory. */
     public Page<ChatMessageResponse> getHistory(Long roomId, Long callerId, Pageable pageable) {
         ChatRoom room = chatRoomService.findRoomOrThrow(roomId);
         requireParticipant(room, callerId);
         return chatMessageRepository.findByChatRoomId(roomId, pageable).map(ChatMessageResponse::fromEntity);
     }
 
-    /** Usta analitika paneli üçün - bu ustanın göndərdiyi bütün OFFER-lərin
-     *  qəbul/rədd nisbəti. Sırf oxu, mövcud heç bir axını dəyişmir. */
     public OfferStatsResponse getOfferStatsForArtist(Long artistId) {
-        // İcazə yoxlaması kontrollerdə edilir (yalnız ustanın özü) - burada xam siyahı lazımdır.
         List<Long> roomIds = chatRoomService.findRoomsWhereArtist(artistId).stream()
                 .map(ChatRoom::getId)
                 .collect(Collectors.toList());
@@ -165,8 +140,6 @@ public class ChatMessageService {
     }
 
     public void markAsRead(Long roomId, Long readerId) {
-        // Başqasının otağındakı mesajları "oxundu" işarələmək də vəziyyəti dəyişməkdir -
-        // qalan əməliyyatlarla eyni yoxlamadan keçir.
         ChatRoom room = chatRoomService.findRoomOrThrow(roomId);
         requireParticipant(room, readerId);
 
@@ -175,8 +148,6 @@ public class ChatMessageService {
         chatMessageRepository.saveAll(unread);
     }
 
-    /** Total unread messages (sent by the OTHER side) across every room this user is part of -
-     *  backs the "Söhbətlər" nav badge, the same idea as notification-service's unread count. */
     public long getUnreadCountForUser(Long userId) {
         List<Long> roomIds = chatRoomService.findRoomsForUser(userId).stream()
                 .map(ChatRoom::getId)
@@ -187,12 +158,6 @@ public class ChatMessageService {
         return chatMessageRepository.countByChatRoomIdInAndReadFalseAndSenderIdNot(roomIds, userId);
     }
 
-    /**
-     * Bir otaqda yalnız həmin otağın öz müştərisi və ustası əməliyyat apara bilər.
-     *
-     * callerId null olanda da rədd edilir: kimliyi müəyyən olmayan çağıran tərifinə
-     * görə iştirakçı deyil. Belədə "başlıq gəlməyib" halında açıq qalmırıq.
-     */
     private void requireParticipant(ChatRoom room, Long callerId) {
         if (!room.isParticipant(callerId)) {
             throw new NotRoomParticipantException(
@@ -209,8 +174,6 @@ public class ChatMessageService {
         } catch (BookingCancelledException ex) {
             throw ex;
         } catch (Exception ex) {
-            // booking-service unreachable: fail closed on the safe side (block the offer)
-            // rather than silently allowing a price agreement we can't actually verify.
             log.error("Bronun statusu yoxlanılmadı (bookingId={}): {}", bookingId, ex.getMessage(), ex);
             throw new BookingCancelledException("Sifarişin statusu təsdiqlənə bilmədi, yenidən cəhd edin.");
         }

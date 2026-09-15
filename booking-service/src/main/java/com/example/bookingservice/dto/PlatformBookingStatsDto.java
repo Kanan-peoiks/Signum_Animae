@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** Admin paneli üçün platforma səviyyəsində bron/rəy mənzərəsi.
- *  ArtistStatsDto tək ustaya aiddir, bu isə bütün platformanı əhatə edir. */
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,6 +19,5 @@ public class PlatformBookingStatsDto {
     private long newLast30Days;
     private long totalReviews;
     private double averageRating;
-    /** Tamamlanmış bronların estimatedPrice cəmi - təxmini dövriyyə. */
     private double totalRevenue;
 }

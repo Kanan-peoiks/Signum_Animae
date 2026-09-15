@@ -30,8 +30,6 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final AuthServiceClient authServiceClient;
 
-    /** customerId always comes from the verified caller, never from the request body -
-     *  otherwise anyone could open a booking "as" someone else. */
     public BookingResponse createBooking(BookingRequest request, Long callerId) {
         Booking booking = Booking.builder()
                 .customerId(callerId)
@@ -47,16 +45,10 @@ public class BookingService {
         return mapToResponse(saved);
     }
 
-    /** Servislərarası istifadə üçün (chat-service Feign ilə çağırır) - burada son
-     *  istifadəçi yoxdur, ona görə sahiblik yoxlaması da yoxdur. İstifadəçi axını
-     *  {@link #getBookingByIdForCaller} üzərindən gedir. */
     public BookingResponse getBookingById(Long id) {
         return mapToResponse(findOrThrow(id));
     }
 
-    /** Bronun qeydləri və qiyməti yalnız iki tərəfə aiddir - kənar istifadəçi
-     *  görməməlidir. ("Keçmiş tatuajlar" siyahısı bunun üçün deyil, ayrıca və
-     *  qəsdən ictimai olan completed-summary endpoint-i var.) */
     public BookingResponse getBookingByIdForCaller(Long id, Long callerId) {
         Booking booking = findOrThrow(id);
         AccessGuard.requireOneOf(callerId, booking.getCustomerId(), booking.getArtistId(),
@@ -64,7 +56,6 @@ public class BookingService {
         return mapToResponse(booking);
     }
 
-    /** Səhifələnmiş: ən yeni bron əvvəldə (sıra pageable-dən gəlir). */
     public Page<BookingResponse> getBookingsByCustomer(Long customerId, Pageable pageable) {
         return bookingRepository.findByCustomerId(customerId, pageable).map(this::mapToResponse);
     }
@@ -73,7 +64,6 @@ public class BookingService {
         return bookingRepository.findByArtistId(artistId, pageable).map(this::mapToResponse);
     }
 
-    /** Usta analitika paneli üçün - sırf oxu, heç bir mövcud axını dəyişmir. */
     public ArtistStatsDto getArtistStats(Long artistId) {
         List<Booking> bookings = bookingRepository.findByArtistId(artistId);
 
@@ -103,9 +93,6 @@ public class BookingService {
                 .build();
     }
 
-    /** Statusu yalnız bronun iki tərəfi dəyişə bilər (müştəri ləğv edir, usta
-     *  təsdiqləyir/tamamlayır) - hansının hansını edə biləcəyi ayrıca məsələdir,
-     *  burada ən azı kənar şəxsin toxunmaması təmin olunur. */
     public BookingResponse updateBookingStatus(Long id, BookingStatus newStatus, Long callerId) {
         Booking booking = findOrThrow(id);
         AccessGuard.requireOneOf(callerId, booking.getCustomerId(), booking.getArtistId(),
@@ -116,12 +103,6 @@ public class BookingService {
         return mapToResponse(updated);
     }
 
-    /**
-     * Called (via Feign, from chat-service) when a customer accepts an OFFER
-     * message in chat - see ChatMessageService.respondToOffer(). This is what
-     * makes the chat "price negotiation" actually change the booking record
-     * instead of just being decorative chat text.
-     */
     public void updateEstimatedPrice(Long id, Double newPrice) {
         Booking booking = findOrThrow(id);
         booking.setEstimatedPrice(newPrice);
@@ -133,12 +114,6 @@ public class BookingService {
                 .orElseThrow(() -> new BookingNotFoundException("Bron tapılmadı! ID: " + id));
     }
 
-    /**
-     * The "past tattoos" section of a customer's profile - intentionally viewable by
-     * ANY logged-in user (that's the feature), but narrowed to COMPLETED bookings only,
-     * with no price/reference-image fields. Artist display names are resolved server-side
-     * via auth-service instead of the frontend fetching full profiles itself.
-     */
     public List<CompletedTattooDto> getCompletedSummaryForCustomer(Long customerId) {
         List<Booking> completed = bookingRepository.findByCustomerId(customerId).stream()
                 .filter(b -> b.getStatus() == BookingStatus.COMPLETED)

@@ -6,8 +6,6 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-/** Gateway-i keçmədən birbaşa notification-service-ə (8085) - servislərarası çağırış,
- *  istifadəçinin JWT-si ilə gələn sorğu deyil. */
 @FeignClient(name = "notification-service",
              url = "${services.notification-service.url}",
              configuration = NotificationServiceFeignConfig.class)

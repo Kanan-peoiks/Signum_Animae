@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/** Admin-only view of a user - unlike UserProfileDto, this always includes the email
- *  and the moderation-relevant "banned" flag, regardless of who's asking. Only ever
- *  returned from an endpoint gated to ADMIN at the gateway (see gateway SecurityConfig). */
 @Data
 @Builder
 @NoArgsConstructor

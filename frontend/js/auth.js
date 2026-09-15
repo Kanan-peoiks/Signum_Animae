@@ -2,7 +2,6 @@
    auth.js — açılış animasiyası, giriş və qeydiyyat ekranı.
    ============================================================ */
 
-/* ---------- açılış yazısının hərf-hərf canlanması ---------- */
 function buildSplashWord() {
   const word = 'SIGNUM ANIMAE';
   const host = $('#splashWord');
@@ -20,7 +19,6 @@ function runSplash() {
   buildSplashWord();
   setTimeout(() => {
     $('#splash').remove();
-    // Məktubdakı link üzrə gəlinəndə ilk iş budur - sessiya olsa da olmasa da.
     if (handleTokenLink()) return;
     if (Session.load() && Session.token) {
       App.start();
@@ -30,25 +28,19 @@ function runSplash() {
   }, 3950);
 }
 
-/* ---------- şifrə sıfırlama / email təsdiqi linkləri ----------
-   İki ayrı səhifə (reset.html və s.) əvəzinə eyni SPA-nın içində işləyirik:
-   backend məktuba index.html?mode=reset&token=... (və ya mode=verify) qoyur. */
 function handleTokenLink() {
   const params = new URLSearchParams(location.search);
   const mode  = params.get('mode');
   const token = params.get('token');
   if (!token || (mode !== 'reset' && mode !== 'verify')) return false;
 
-  // Token URL-də qalmasın: səhifə yenilənəndə və ya link paylaşılanda təkrar işləməsin.
   history.replaceState(null, '', location.pathname);
 
   if (mode === 'verify') {
-    // Təsdiq linki: sessiya varsa istifadəçini tətbiqdən çıxarmağın mənası yoxdur.
     if (Session.load() && Session.token) App.start();
     else showAuthScreen();
     verifyEmailFromLink(token);
   } else {
-    // Şifrə sıfırlama hər halda giriş ekranında baş verir.
     showAuthScreen();
     openResetPasswordModal(token);
   }
@@ -122,13 +114,11 @@ function showAuthScreen() {
   $('#appShell').classList.add('is-hidden');
   const screen = $('#authScreen');
   screen.classList.remove('is-hidden');
-  // animasiyanı yenidən oynatmaq üçün reflow
   screen.style.animation = 'none';
   void screen.offsetWidth;
   screen.style.animation = '';
 }
 
-/* ---------- tablar ---------- */
 function initAuthTabs() {
   $$('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -141,7 +131,6 @@ function initAuthTabs() {
   });
 }
 
-/* ---------- formlar ---------- */
 function initAuthForms() {
 
   $('#forgotLink').addEventListener('click', (e) => {
@@ -188,8 +177,6 @@ function initAuthForms() {
   });
 }
 
-/* Giriş/qeydiyyat cavabında fullName gəlmir — onu ayrıca çəkirik ki,
-   yuxarı paneldə istifadəçinin adı görünsün. */
 async function completeLogin(auth) {
   Session.save(auth);
   try {

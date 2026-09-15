@@ -20,12 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Covers the one thing that used to be enforced ONLY by hiding a button in the
- * frontend (see the earlier "ləğv olunmuş sifarişdə söhbət/təklif qadağası" feature):
- * a cancelled booking must actually reject a new OFFER server-side, not just look
- * blocked in the UI. Also covers that only a room's own customer/artist can act in it.
- */
 @ExtendWith(MockitoExtension.class)
 class ChatMessageServiceTest {
 
@@ -75,9 +69,6 @@ class ChatMessageServiceTest {
 
         service.saveMessage(1L, text, 7L);
 
-        // Plain chat must keep working after a cancellation - only NEW OFFERS are
-        // blocked - and the check for "is it cancelled" should never even run for a
-        // TEXT message (no need to ask booking-service at all).
         verify(chatMessageRepository).save(any(ChatMessage.class));
         verifyNoInteractions(bookingServiceClient);
     }
@@ -105,12 +96,12 @@ class ChatMessageServiceTest {
         ChatMessageRequest spoofed = new ChatMessageRequest();
         spoofed.setMessageType(MessageType.TEXT);
         spoofed.setContent("Mən əslində sənəm deyə göndərirəm");
-        spoofed.setSenderId(3L); // caller is 7 (the customer), but the payload claims to be 3 (the artist)
+        spoofed.setSenderId(3L);
 
         service.saveMessage(1L, spoofed, 7L);
 
         var captor = org.mockito.ArgumentCaptor.forClass(ChatMessage.class);
         verify(chatMessageRepository).save(captor.capture());
-        assertThat(captor.getValue().getSenderId()).isEqualTo(7L); // the verified caller, not the spoofed value
+        assertThat(captor.getValue().getSenderId()).isEqualTo(7L);
     }
 }

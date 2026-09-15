@@ -5,11 +5,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/** Müştərinin izlədiyi usta. İstifadəçi/usta məlumatları auth-service-də yaşadığına görə
- *  bu cədvəl də burada - signum_animae_authservice bazasında.
- *
- *  Yalnız id-lər saxlanılır (User-ə @ManyToOne yox): izləmə siyahısı oxunanda onsuz da
- *  ArtistProfile-dan xülasə çəkilir, əlaqə qoysaq hər sorğuda artıq JOIN yaranardı. */
 @Entity
 @Table(
         name = "artist_follows",

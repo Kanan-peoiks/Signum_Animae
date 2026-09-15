@@ -19,7 +19,6 @@ public class UserProfileDto {
     private Role role;
     private String city;
     private String profileImageUrl;
-    /** null ola bilər - köhnə hesablarda təsdiq axını heç vaxt işləməyib. */
     private Boolean emailVerified;
     private LocalDateTime createdAt;
 }

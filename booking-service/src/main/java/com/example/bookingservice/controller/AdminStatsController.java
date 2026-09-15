@@ -8,9 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Admin statistikası - gateway ROLE_ADMIN yoxlayır, bu servisdə Spring Security yoxdur.
- *  Yol /stats/bookings-dir ki, auth-service-dəki /stats/users ilə gateway route-ları
- *  toqquşmasın. */
 @RestController
 @RequestMapping("/api/v1/admin/stats")
 @RequiredArgsConstructor

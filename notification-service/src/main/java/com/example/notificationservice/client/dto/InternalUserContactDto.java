@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-/** Mirrors auth-service's InternalUserContactDto - separate Gradle projects, no shared module. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

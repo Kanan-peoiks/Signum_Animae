@@ -26,12 +26,6 @@ public class NotificationService {
     private final AuthServiceClient authServiceClient;
 
     public Notification sendNotification(NotificationRequest request) {
-        // The email address always comes from auth-service's own record for this user,
-        // never from the request - a caller (or a compromised frontend) used to be able
-        // to send NotificationRequest.userEmail directly, which meant it could ask this
-        // service to email literally any address it wanted "as" a notification to
-        // userId. Resolving it here also means the frontend no longer needs to fetch
-        // another user's email into the browser at all (see api.js's old notifyQuietly).
         String resolvedEmail = resolveEmail(request.getUserId());
 
         Notification notification = Notification.builder()
@@ -60,8 +54,6 @@ public class NotificationService {
         return notificationRepository.countUnread(userId);
     }
 
-    /** @return false if the notification doesn't exist or doesn't belong to callerId -
-     *  the controller turns that into 404/403 as appropriate; true if it was marked read. */
     public boolean markAsRead(Long id) {
         return notificationRepository.findById(id)
                 .map(n -> {

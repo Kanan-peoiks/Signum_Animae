@@ -32,11 +32,9 @@ const App = {
   route: null,
   pendingRoomId: null,
 
-  /* İzlənilən ustaların userId-ləri. Usta kartları hər biri üçün ayrıca sorğu
-     atmasın deyə bir dəfə yükləyib keshləyirik; hər izlə/çıx əməliyyatında yenilənir. */
   followingIds: new Set(),
   followingLoaded: false,
-  nameCache: ChatModule.peerCache,   // eyni keşi paylaşırıq
+  nameCache: ChatModule.peerCache,
 
   chatBadgeTimer: null,
 
@@ -53,8 +51,6 @@ const App = {
     this.nav(Session.isAdmin ? 'admin' : (Session.isArtist ? 'orders' : 'discover'));
     this.refreshNotifBadge();
     this.refreshChatBadge();
-    // WebSocket yalnız HAZIRDA açıq otağa abunədir - başqa otaqda gələn mesajı
-    // görmək üçün nişanı seyrək (20s) təzələyirik, presence yoxlaması ilə eyni məntiq.
     clearInterval(this.chatBadgeTimer);
     this.chatBadgeTimer = setInterval(() => this.refreshChatBadge(), 20000);
   },
@@ -104,19 +100,14 @@ const App = {
     (pages[route] || pages.discover)();
   },
 
-  /* Bron/söhbət siyahılarında yalnız id gəlir — ad üçün ayrıca sorğu lazımdır,
-     ona görə nəticələri keşləyirik. */
   resolveName(userId) { return ChatModule.resolvePeerName(userId); },
 
   /* ============================================================
      USTA İZLƏMƏ (favoritlər)
      ============================================================ */
 
-  /** İzləmə yalnız müştəriyə aiddir - usta özünü, admin isə heç kəsi izləmir. */
   canFollow() { return !Session.isArtist && !Session.isAdmin && Session.userId != null; },
 
-  /** Keshi bir dəfə doldurur. Sınarsa boş qalır: izləmə nişanı görünməsə də,
-      səhifənin qalanı normal işləməlidir. */
   async ensureFollowing() {
     if (!this.canFollow() || this.followingLoaded) return;
     try {
@@ -164,14 +155,12 @@ const App = {
       if (btn.dataset.bound) return;
       btn.dataset.bound = '1';
       btn.addEventListener('click', (e) => {
-        // Usta kartının özünün "profilə keç" handler-i var - düymə onu işə salmamalıdır.
         e.stopPropagation();
         this.toggleFollow(btn);
       });
     });
   },
 
-  /* İzlənilən ustaların siyahısı */
   async pageFollowing(host) {
     host.innerHTML = pageHead('İzlədiklərim', 'Bəyəndiyin ustalar bir yerdə') + spinner();
 
@@ -183,7 +172,6 @@ const App = {
       return;
     }
 
-    // Siyahının özü ən dəqiq mənbədir - eyni zamanda keshi də burada yeniləyirik.
     this.followingIds = new Set((list || []).map(a => Number(a.userId)));
     this.followingLoaded = true;
 
@@ -235,10 +223,8 @@ const App = {
     $('#fExperience').addEventListener('change', () => this.runSearch());
     $('#fSort').addEventListener('change', () => this.runSearch());
 
-    // Kartların "İzlə" düyməsi keshə baxdığı üçün rəndləmədən əvvəl doldurulmalıdır.
     await this.ensureFollowing();
 
-    // populyarlıq siyahısı Redis-dəki baxış sayğacından formalaşır
     try {
       const popular = await Api.artists.popular(8);
       $('#popularBox').innerHTML = popular.length
@@ -252,9 +238,6 @@ const App = {
     this.runSearch();
   },
 
-  /** @param page 0-dan başlayan səhifə nömrəsi.
-   *  @param append true olanda mövcud kartların üstünə əlavə edir ("Daha çox yüklə"),
-   *                false olanda siyahını sıfırdan qurur (yeni axtarış). */
   async runSearch(page = 0, append = false) {
     const box = $('#resultsBox');
     if (!box) return;
@@ -307,7 +290,6 @@ const App = {
     this.bindArtistCards(box);
   },
 
-  /** Səhifələnmiş siyahıların altındakı ortaq "daha çox" düyməsi. */
   loadMoreButton(id) {
     return '<div style="text-align:center;margin-top:18px">' +
       '<button class="btn btn-ghost" id="' + id + '">Daha çox yüklə</button></div>';
@@ -315,20 +297,6 @@ const App = {
 
   _pagedSeq: 0,
 
-  /**
-   * Səhifələnmiş siyahını verilmiş qaba yığır və altına "Daha çox yüklə" qoyur.
-   * Backend-in bütün səhifələnmiş endpoint-ləri eyni formada cavab verir
-   * ({ content, totalElements, totalPages, number, size, last }), ona görə bu köməkçi
-   * hamsı üçün işləyir.
-   *
-   * @param o.box      DOM qabı (siyahı tam bu qabın içində qurulur)
-   * @param o.fetch    (page) => Promise<PageResponse>
-   * @param o.render   (element) => HTML sətri
-   * @param o.empty    siyahı boş olanda göstərilən HTML (emptyState(...))
-   * @param o.listClass siyahı qabının class-ı (default 'rows')
-   * @param o.onPage   (res, box, yeniElementlər) - handler bağlamaq üçün, hər
-   *                   səhifədən sonra çağrılır
-   */
   async pagedList(o) {
     const box = o.box;
     if (!box) return;
@@ -403,8 +371,6 @@ const App = {
   },
 
   bindArtistCards(root) {
-    // "Daha çox yüklə"dən sonra root-da həm köhnə, həm yeni kartlar olur -
-    // artıq bağlanmış karta ikinci dəfə handler qoymaq iki dəfə naviqasiya deməkdir.
     $$('.artist-card', root).forEach(card => {
       if (card.dataset.bound) return;
       card.dataset.bound = '1';
@@ -421,10 +387,8 @@ const App = {
     const canFollow = this.canFollow();
     let artist, slots = [], followers = 0, isFollowing = false;
     try {
-      // Bu sorğu həm də Redis-də baxış sayğacını artırır (populyarlıq üçün)
       artist = await Api.artists.byUserId(artistUserId);
       slots = await Api.availability.publicSlots(artistUserId).catch(() => []);
-      // İzləyici sayı və öz vəziyyətimə əlavə məlumatdır - sınarsa səhifə yenə açılmalıdır.
       [followers, isFollowing] = await Promise.all([
         Api.follows.count(artistUserId).catch(() => 0),
         canFollow ? Api.follows.isFollowing(Session.userId, artistUserId).catch(() => false) : false
@@ -506,7 +470,6 @@ const App = {
     });
   },
 
-  /* ---------- yeni sifariş ---------- */
   promptBooking(artist, presetDate) {
     const base = presetDate ? new Date(presetDate) : new Date(Date.now() + 86400000);
     const local = new Date(base.getTime() - base.getTimezoneOffset() * 60000)
@@ -533,7 +496,6 @@ const App = {
             await Api.bookings.create({
               customerId: Session.userId,
               artistId: artist.userId,
-              // datetime-local "YYYY-MM-DDTHH:mm" verir, backend LocalDateTime saniyə gözləyir
               bookingDate: dateVal.length === 16 ? dateVal + ':00' : dateVal,
               notes: $('#bNotes', ov).value.trim(),
               tattooConceptUrl: $('#bUrl', ov).value.trim(),
@@ -560,8 +522,6 @@ const App = {
     let user, pastTattoos = [];
     try {
       user = await Api.users.get(customerUserId);
-      // Artıq server özü qərar verir: qiymət/qeyd kimi məxfi sahələr heç
-      // qayıtmır (bax BookingService.getCompletedSummaryForCustomer).
       pastTattoos = await Api.bookings.completedSummary(customerUserId).catch(() => []);
       pastTattoos.sort((a, b) => (b.bookingDate || '').localeCompare(a.bookingDate || ''));
     } catch (err) {
@@ -613,8 +573,6 @@ const App = {
 
     await this.pagedList({
       box: $('#bookingsBox', host),
-      // Ad ancaq id ilə gəlir - rəndləmədən ƏVVƏL həll edilməlidir, ona görə burada.
-      // Sıralama artıq backend-dədir (ən yeni əvvəldə).
       fetch: async (page) => {
         const res = await Api.bookings.forCustomer(Session.userId, page);
         await Promise.all((res.content || []).map(b => this.resolveName(b.artistId)));
@@ -642,7 +600,6 @@ const App = {
           '</div>' +
         '</div>';
       },
-      // "Daha çox yüklə" yeni sətirlər gətirir - onların da düymələri bağlanmalıdır.
       onPage: () => {
         this.bindOnce('[data-chat]', host, (btn) =>
           this.openChatFor(Number(btn.dataset.chat), Session.userId, Number(btn.dataset.artist), btn));
@@ -653,9 +610,6 @@ const App = {
     });
   },
 
-  /** Verilmiş seçiciyə uyğun elementlərə bir dəfə klik handler-i qoşur.
-   *  Səhifələnmiş siyahılarda köhnə sətirlər yerində qaldığı üçün təkrar bağlama
-   *  eyni əməliyyatın iki dəfə işləməsi demək olardı. */
   bindOnce(selector, root, handler) {
     $$(selector, root).forEach(el => {
       if (el.dataset.bound) return;
@@ -737,8 +691,6 @@ const App = {
     }
   },
 
-  /* Söhbət otağı bookingId üzrə idempotent yaradılır — hər iki tərəf
-     eyni düyməni basanda eyni otağa düşür. */
   async openChatFor(bookingId, customerId, artistId, btn) {
     const done = withBusy(btn, '');
     try {
@@ -751,7 +703,6 @@ const App = {
     }
   },
 
-  /* ---------- rəy ---------- */
   promptReview(bookingId) {
     let picked = 5;
     const { overlay } = openModal('Rəy yaz',
@@ -825,7 +776,6 @@ const App = {
               '</div>'
             : '<button class="btn btn-ghost btn-sm reply-btn" data-id="' + r.id + '" style="margin-top:10px">Cavab yaz</button>') +
         '</div></div>',
-      // Hər yeni səhifədən sonra təzə "Cavab yaz" düymələri gəlir - onları da bağlamaq lazımdır.
       onPage: () => this.bindReviewReplyButtons(host)
     });
   },
@@ -1039,8 +989,8 @@ const App = {
       '<div class="section-title">Saxlanmış ideyalar</div>' +
       '<div id="aiHistoryBox">' + spinner() + '</div>';
 
-    let lastIdea = null;   // { prompt, style, aiRecommendation } - son "Məsləhət al" nəticəsi
-    let lastImage = null;  // { prompt, aiRecommendation } - son "Analiz et" nəticəsi
+    let lastIdea = null;
+    let lastImage = null;
 
     $('#aiIdeaBtn').addEventListener('click', async (e) => {
       const prompt = $('#aiPrompt').value.trim();
@@ -1103,7 +1053,6 @@ const App = {
     this.loadAiHistory(host);
   },
 
-  /* ---------- AI Studiya tarixçəsi ---------- */
   async saveAiIdea(promptText, styleText, recommendation, btn, host) {
     const done = withBusy(btn, 'Saxlanır');
     try {
@@ -1165,8 +1114,6 @@ const App = {
   async promptLinkIdea(ideaId, host) {
     let bookings;
     try {
-      // Bu bir açılan siyahıdır, "daha çox" düyməsi yoxdur - ona görə bir dəfəyə
-      // daha böyük səhifə çəkirik (backend-in yuxarı həddi 100-dür).
       const res = Session.isArtist
         ? await Api.bookings.forArtist(Session.userId, 0, 100)
         : await Api.bookings.forCustomer(Session.userId, 0, 100);
@@ -1224,7 +1171,6 @@ const App = {
       },
       onPage: () => {
         this.bindOnce('[data-read]', host, (btn, e) => {
-          // Düymə sətrin içindədir - klik yuxarı ötürsə həm də başqa səhifəyə keçərdik.
           e.stopPropagation();
           const done = withBusy(btn, '');
           Api.notifications.markRead(Number(btn.dataset.read))
@@ -1232,9 +1178,6 @@ const App = {
             .catch(err => { toastErr(err.message); done(); });
         });
 
-        // Bildirişə klikləyəndə aid olduğu bölməyə keçirik. Hazırda bütün bildirişlər
-        // sifariş/söhbət mövzuludur (bax notifyQuietly çağırışlarına), ona görə
-        // rola görə ən uyğun siyahıya yönləndiririk.
         this.bindOnce('[data-notif]', host, (row) => {
           Api.notifications.markRead(Number(row.dataset.notif)).catch(() => {});
           this.nav(Session.isArtist ? 'orders' : 'bookings');
@@ -1299,8 +1242,6 @@ const App = {
             '<div><div class="a-name">' + esc(user.fullName || '—') + '</div>' +
               '<div class="a-city">' + esc(user.email) + ' · ' +
                 (Session.isAdmin ? 'Admin' : (Session.isArtist ? 'Rəssam' : 'Müştəri')) + '</div>' +
-              // emailVerified null ola bilər (köhnə hesablar) - o zaman da "təsdiqlənməyib"
-              // görünür, amma bu heç nəyi bloklamır, sadəcə nişandır.
               '<div style="margin-top:6px">' +
                 (user.emailVerified
                   ? '<span class="badge COMPLETED">Email təsdiqlənib ✓</span>'
@@ -1404,8 +1345,6 @@ const App = {
   async pageAdmin(host) {
     host.innerHTML = pageHead('Admin paneli', 'İstifadəçilər və rəylərin moderasiyası') + spinner();
 
-    // Statistika əlavədir: bir servis əlçatmaz olsa qalan panel yenə işləməlidir.
-    // Siyahıların özü aşağıda pagedList ilə ayrıca yüklənir.
     const [uStats, bStats] = await Promise.all([
       Api.admin.userStats().catch(() => null),
       Api.admin.bookingStats().catch(() => null)
@@ -1547,14 +1486,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#logoutBtn').addEventListener('click', logout);
   $('#navToggle').addEventListener('click', () => $('#sideNav').classList.toggle('open'));
 
-  // Token bitəndə və ya icazə olmayanda avtomatik giriş ekranına qaytarırıq
   window.addEventListener('signum:unauthorized', () => {
     ChatModule.disconnect();
     $('#appShell').classList.add('is-hidden');
     showAuthScreen();
-    // toastErr yox, birbaşa toast(): eyni anda uğursuz olan başqa sorğuların
-    // öz toastErr çağırışları susdurulan pəncərədədir, amma bu KANONIK mesaj
-    // hər zaman görünməlidir.
     toast('Sessiya bitib. Yenidən daxil ol.', 'err');
   });
 

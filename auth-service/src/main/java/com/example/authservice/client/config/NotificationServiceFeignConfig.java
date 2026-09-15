@@ -8,12 +8,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
-/** booking-service-in AuthServiceFeignConfig-i ilə eyni quruluş: paylaşılan internal
- *  token hər sorğuya əlavə olunur.
- *
- *  Timeout-lar qəsdən qısadır: bu çağırış qeydiyyat/şifrə sıfırlama axınının içindən
- *  gedir, notification-service cavab verməsə istifadəçi dəqiqələrlə gözləməməlidir
- *  (çağıran tərəf xətanı onsuz da udur). */
 @Configuration
 public class NotificationServiceFeignConfig {
 

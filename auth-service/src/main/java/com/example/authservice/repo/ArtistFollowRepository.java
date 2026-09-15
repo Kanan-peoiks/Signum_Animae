@@ -12,7 +12,6 @@ public interface ArtistFollowRepository extends JpaRepository<ArtistFollow, Long
 
     Optional<ArtistFollow> findByCustomerIdAndArtistId(Long customerId, Long artistId);
 
-    /** Ən son izlənən əvvəldə - "İzlədiklərim" səhifəsi bu sıra ilə göstərir. */
     List<ArtistFollow> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 
     long countByArtistId(Long artistId);

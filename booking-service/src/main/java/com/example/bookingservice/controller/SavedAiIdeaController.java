@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/** AI Studiyada alınmış ideyaların saxlanması/bəyənilməsi və mövcud sifarişə
- *  bağlanması. AI Studiyanın özünə (ai-service) toxunmur - sadəcə nəticəni
- *  saxlayır. */
 @RestController
 @RequestMapping("/api/v1/ai-ideas")
 @RequiredArgsConstructor

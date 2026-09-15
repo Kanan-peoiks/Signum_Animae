@@ -21,15 +21,11 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    /** See TrustedRequestFilter's note on /send - accepts either a service token or a
-     *  normal logged-in user for now, not fully locked to service-to-service yet. */
     @PostMapping("/send")
     public ResponseEntity<Notification> sendNotification(@Valid @RequestBody NotificationRequest request) {
         return ResponseEntity.ok(notificationService.sendNotification(request));
     }
 
-    /** Private - only the notifications' own owner can list them.
-     *  Səhifələnmişdir: ?page=0&size=20, cavab PageResponse ("content" içində). */
     @GetMapping("/user/{userId}")
     public ResponseEntity<PageResponse<Notification>> getUserNotifications(
             @PathVariable Long userId,
@@ -41,7 +37,6 @@ public class NotificationController {
                 notificationService.getUserNotifications(userId, PageParams.of(page, size, newestFirst))));
     }
 
-    /** Yan paneldəki oxunmamış nişanı - siyahı səhifələndiyi üçün ayrıca sayğac lazımdır. */
     @GetMapping("/user/{userId}/unread-count")
     public ResponseEntity<Map<String, Long>> getUnreadCount(@PathVariable Long userId) {
         return ResponseEntity.ok(Map.of("count", notificationService.countUnread(userId)));

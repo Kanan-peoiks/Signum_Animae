@@ -15,8 +15,6 @@ public interface BookingServiceClient {
     @PatchMapping("/api/v1/bookings/internal/{bookingId}/price")
     void updatePrice(@PathVariable("bookingId") Long bookingId, @RequestBody UpdateBookingPriceRequest request);
 
-    /** Used to block new price OFFERs (and accepting existing ones) once the underlying
-     *  booking has been cancelled - see ChatMessageService. */
     @GetMapping("/api/v1/bookings/internal/{bookingId}")
     BookingStatusDto getBookingStatus(@PathVariable("bookingId") Long bookingId);
 }

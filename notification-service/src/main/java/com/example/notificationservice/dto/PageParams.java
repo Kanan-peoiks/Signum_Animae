@@ -4,9 +4,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-/** Klientdən gələn ?page=&size= dəyərlərinin təhlükəsiz hala salınması.
- *  Məhdudiyyət olmasa "size=1000000" ilə bütün cədvəli bir sorğuda çəkmək olardı -
- *  səhifələmənin əsas məqsədi elə bunun qarşısını almaqdır. */
 public final class PageParams {
 
     public static final int DEFAULT_SIZE = 20;

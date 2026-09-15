@@ -7,7 +7,6 @@ import lombok.Data;
 
 @Data
 public class ReviewReplyRequest {
-    /** Cavab verən ustanın id-si - review.artistId ilə üst-üstə düşməlidir, əks halda 403. */
     @NotNull(message = "artistId tələb olunur")
     private Long artistId;
 

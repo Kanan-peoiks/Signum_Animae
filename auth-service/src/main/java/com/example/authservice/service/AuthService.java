@@ -59,9 +59,6 @@ public class AuthService {
             artistProfileRepository.save(profile);
         }
 
-        // Email təsdiqi girişi BLOKLAMIR - sadəcə profildə nişan kimi görünür
-        // (mövcud istifadəçilərin emailVerified dəyəri null-dur, hamsı kənarda qalardı).
-        // Təsdiq məktubu sınarsa qeydiyyat yenə uğurlu sayılır.
         try {
             accountTokenService.sendVerificationEmail(
                     user.getId(), accountTokenService.issue(user.getId(), AuthTokenType.EMAIL_VERIFICATION));
@@ -88,12 +85,6 @@ public class AuthService {
         return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole());
     }
 
-    /* ============================================================
-       ŞİFRƏ SIFIRLAMA / EMAİL TƏSDİQİ
-       ============================================================ */
-
-    /** Belə bir email olub-olmamasından asılı olmayaraq eyni nəticə — əks halda bu
-     *  endpoint kimin qeydiyyatdan keçdiyini yoxlamaq üçün istifadə oluna bilərdi. */
     public void forgotPassword(EmailRequest request) {
         userRepository.findByEmail(request.getEmail()).ifPresent(user ->
                 accountTokenService.sendPasswordResetEmail(
@@ -120,8 +111,6 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    /** Təsdiq linkini yenidən göndərir. forgotPassword kimi, mövcud olmayan email üçün də
-     *  eyni cavab verilir; artıq təsdiqlənmiş hesaba isə yeni link göndərilmir. */
     public void resendVerification(EmailRequest request) {
         userRepository.findByEmail(request.getEmail())
                 .filter(user -> !Boolean.TRUE.equals(user.getEmailVerified()))

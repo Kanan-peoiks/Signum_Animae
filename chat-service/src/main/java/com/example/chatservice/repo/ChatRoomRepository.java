@@ -11,6 +11,5 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     List<ChatRoom> findByCustomerId(Long customerId);
     List<ChatRoom> findByArtistId(Long artistId);
 
-    /** All rooms this user is part of, regardless of whether they're the customer or the artist in it. */
     List<ChatRoom> findByCustomerIdOrArtistId(Long customerId, Long artistId);
 }

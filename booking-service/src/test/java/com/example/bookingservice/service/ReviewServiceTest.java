@@ -48,9 +48,6 @@ class ReviewServiceTest {
         request.setBookingId(1L);
         request.setRating(5);
 
-        // caller is 999, but the booking's real customer is 7 - someone trying to
-        // review a booking that isn't theirs (previously this was checked against
-        // request.getCustomerId(), which the caller also controls - not a real check).
         assertThatThrownBy(() -> reviewService.createReview(request, 999L))
                 .isInstanceOf(ReviewOwnershipException.class);
         verify(reviewRepository, never()).save(any(Review.class));
@@ -70,8 +67,6 @@ class ReviewServiceTest {
         request.setRating(5);
         request.setComment("Əla iş çıxdı.");
 
-        // The review itself is the source of truth - a hiccup talking to auth-service
-        // about the derived rating-average cache must not roll back or crash this.
         ReviewResponse response = reviewService.createReview(request, 7L);
 
         assertThat(response.getRating()).isEqualTo(5);

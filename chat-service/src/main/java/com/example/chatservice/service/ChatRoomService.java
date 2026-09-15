@@ -18,18 +18,6 @@ public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
 
-    /**
-     * A chat room is created lazily the first time either side opens the chat
-     * for a given booking. This method is idempotent: calling it again for the
-     * same bookingId just returns the existing room instead of creating a duplicate.
-     *
-     * İKİ ayrı yoxlama var və hər ikisi lazımdır:
-     *  1. Çağıran iddia etdiyi iki tərəfdən biri olmalıdır - başqalarının adından otaq
-     *     açmasın.
-     *  2. Otaq ARTIQ varsa, gövdədəki id-lər deyil, otağın ÖZ id-ləri həlledicidir -
-     *     əks halda kimsə öz id-lərini başqasının bookingId-si ilə göndərib həmin bronun
-     *     tərəflərini öyrənə bilərdi (metod mövcud otağı qaytarır).
-     */
     public ChatRoomResponse getOrCreateRoom(ChatRoomRequest request, Long callerId) {
         if (callerId == null
                 || (!callerId.equals(request.getCustomerId()) && !callerId.equals(request.getArtistId()))) {
@@ -49,7 +37,6 @@ public class ChatRoomService {
         return ChatRoomResponse.fromEntity(room);
     }
 
-    /** Otaq əməliyyatlarının ortaq qapısı - qayda ChatRoom.isParticipant-dədir. */
     public void requireParticipant(ChatRoom room, Long callerId) {
         if (!room.isParticipant(callerId)) {
             throw new NotRoomParticipantException(
@@ -57,7 +44,6 @@ public class ChatRoomService {
         }
     }
 
-    /** Yalnız öz məlumatına baxmaq olar - yoldakı id çağıranın id-si ilə üst-üstə düşməlidir. */
     public void requireSelf(Long pathUserId, Long callerId) {
         if (callerId == null || !callerId.equals(pathUserId)) {
             throw new NotRoomParticipantException("Yalnız öz söhbətlərinə baxa bilərsən.");
@@ -69,15 +55,10 @@ public class ChatRoomService {
                 .orElseThrow(() -> new ChatRoomNotFoundException("Söhbət otağı tapılmadı: " + roomId));
     }
 
-    /** Raw entities (not DTOs) for internal use - e.g. ChatMessageService needs just the ids
-     *  to compute an unread-message count across every room this user is part of.
-     *  Servis daxili istifadə olduğu üçün icazə yoxlaması yoxdur - çağıran metod özü
-     *  artıq kimin adından işlədiyini bilir. */
     public List<ChatRoom> findRoomsForUser(Long userId) {
         return chatRoomRepository.findByCustomerIdOrArtistId(userId, userId);
     }
 
-    /** Eyni məntiq, yalnız ustanın öz otaqları - bax getOfferStatsForArtist. */
     public List<ChatRoom> findRoomsWhereArtist(Long artistId) {
         return chatRoomRepository.findByArtistId(artistId);
     }

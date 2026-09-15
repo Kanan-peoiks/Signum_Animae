@@ -5,9 +5,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/** Ustanın "boşam" dediyi vaxt pəncərələri - sifariş yaradılmasını məcburi
- *  məhdudlaşdırmır (bookingDate hələ də sərbəst seçilir), sadəcə müştəriyə
- *  ustanın nə vaxt uyğun olduğunu göstərir - orientasiya üçün. */
 @Entity
 @Table(name = "availability_slots")
 @Getter
@@ -30,7 +27,6 @@ public class AvailabilitySlot {
     @Column(nullable = false)
     private LocalDateTime slotEnd;
 
-    /** Usta özü əl ilə "dolu" işarələyə bilər (avtomatik bağlanmır). */
     @Builder.Default
     private boolean booked = false;
 

@@ -8,8 +8,6 @@ import lombok.Data;
 
 @Data
 public class ChatMessageRequest {
-    /** Artıq etibar edilmir - göndərən həmişə doğrulanmış çağırandan (REST üçün X-User-Id,
-     *  WS üçün handshake-də yoxlanan JWT) götürülür, bax ChatMessageService.saveMessage. */
     private Long senderId;
 
     @NotBlank(message = "content boş ola bilməz")

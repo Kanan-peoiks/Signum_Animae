@@ -12,9 +12,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** Yalnız oxuma - admin panelinin yuxarısındakı ümumi göstəricilər.
- *  AdminService-dən ayrı saxlanılır: ora moderasiya əməliyyatları (blok/blokdan çıxarma)
- *  aiddir, bura isə heç nəyi dəyişməyən aqreqasiya. */
 @Service
 @RequiredArgsConstructor
 public class AdminStatsService {

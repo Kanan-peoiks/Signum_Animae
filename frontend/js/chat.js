@@ -1,10 +1,5 @@
 /* ============================================================
    chat.js — canlı söhbət (STOMP over WebSocket) + söhbət səhifəsi.
-
-   DİQQƏT: WebSocket birbaşa chat-service-ə (8083) qoşulur, gateway-ə
-   (8080) yox. Səbəb: Spring Cloud Gateway Server MVC-nin HTTP proxy
-   handler-i WebSocket protokol "upgrade"-ini yerinə yetirə bilmir.
-   REST sorğular isə normal şəkildə gateway üzərindən gedir.
    ============================================================ */
 
 const ChatModule = {
@@ -19,19 +14,17 @@ const ChatModule = {
   subMessages: null,
   subTyping: null,
 
-  seenIds: new Set(),      // eyni mesajın iki dəfə əlavə olunmasının qarşısını alır
+  seenIds: new Set(),
 
-  // Tarixçə tərs səhifələnir: 0 - ən yeni səhifə, rəqəm artdıqca köhnəyə gedirik.
   historyPage: 0,
   historyLast: true,
-  peerCache: new Map(),    // userId -> fullName
-  bookingDateCache: new Map(),  // bookingId -> formatted date
+  peerCache: new Map(),
+  bookingDateCache: new Map(),
 
   typingTimer: null,
   lastTypingSent: 0,
   presenceTimer: null,
 
-  /* ---------- bağlantı ---------- */
   connect() {
     if (this.client || !Session.userId) return;
     if (typeof StompJs === 'undefined') {
@@ -40,9 +33,6 @@ const ChatModule = {
     }
 
     this.client = new StompJs.Client({
-      // Token MƏCBURİDİR: chat-service handshake-də imzanı yoxlayır və göndərənin
-      // kimliyini tokenin özündən götürür (bax PresenceHandshakeInterceptor).
-      // Əvvəl burada sadəcə "?userId=" gedirdi - onu istənilən kəs uydura bilərdi.
       brokerURL: WS_URL + '?token=' + encodeURIComponent(Session.token || ''),
       reconnectDelay: 6000,
       heartbeatIncoming: 10000,
@@ -89,7 +79,7 @@ const ChatModule = {
       let evt;
       try { evt = JSON.parse(frame.body); } catch (e) { return; }
       if (this.roomId !== roomId) return;
-      if (Number(evt.userId) === Number(Session.userId)) return;  // özümüzü göstərmirik
+      if (Number(evt.userId) === Number(Session.userId)) return;
       this.showTyping();
     });
   },
@@ -99,7 +89,6 @@ const ChatModule = {
     if (this.subTyping)   { try { this.subTyping.unsubscribe();   } catch (e) {} this.subTyping = null; }
   },
 
-  /* ---------- otaq siyahısı səhifəsi ---------- */
   async renderPage(host) {
     host.innerHTML = pageHead('Söhbətlər', 'Hər söhbət bir sifarişə bağlıdır') + spinner();
 
@@ -119,8 +108,6 @@ const ChatModule = {
       return;
     }
 
-    // hər otağın qarşı tərəfinin adını VƏ sifarişin tarixini çəkirik - "Sifariş #7"
-    // kimi çılpaq DB id-si göstərmək əvəzinə tarix daha oxunaqlıdır.
     await Promise.all(rooms.map(r => Promise.all([
       this.resolvePeerName(this.peerOf(r)),
       this.resolveBookingDate(r.bookingId)
@@ -157,7 +144,6 @@ const ChatModule = {
       });
     });
 
-    // birbaşa müəyyən otağa keçid tələb olunubsa (sifarişlər səhifəsindən)
     if (App.pendingRoomId) {
       const target = $('#chatList .chat-list-item[data-room="' + App.pendingRoomId + '"]');
       App.pendingRoomId = null;
@@ -180,8 +166,6 @@ const ChatModule = {
     return this.peerCache.get(userId);
   },
 
-  /* Söhbət siyahısında "Sifariş #7" kimi çılpaq DB id-si göstərmək əvəzinə
-     bronun tarixini göstəririk - bookingDateCache ilə eyni növ keşləmə. */
   async resolveBookingDate(bookingId) {
     if (this.bookingDateCache.has(bookingId)) return this.bookingDateCache.get(bookingId);
     try {
@@ -193,7 +177,6 @@ const ChatModule = {
     return this.bookingDateCache.get(bookingId);
   },
 
-  /* ---------- konkret otağın açılması ---------- */
   async openRoom(roomId, peerId, bookingId) {
     this.roomId = roomId;
     this.peerId = peerId;
@@ -202,9 +185,6 @@ const ChatModule = {
     this.historyPage = 0;
     this.historyLast = true;
 
-    // Ad və bronun cari statusunu paralel çəkirik - ləğv edilmiş bron üçün
-    // söhbətə davam etmək olsun, amma yeni qiymət təklifi göndərmək OLMASIN
-    // (əvəzinə müştəri yeni sifariş açmalıdır).
     const [peerName, booking] = await Promise.all([
       this.resolvePeerName(peerId),
       Api.bookings.byId(bookingId).catch(() => null)
@@ -249,7 +229,6 @@ const ChatModule = {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.sendText(); });
     input.addEventListener('input', () => this.sendTyping());
 
-    // tarixçə - yalnız son səhifə yüklənir, köhnələr düymə ilə gəlir
     const body = $('#chatBody');
     try {
       const res = await Api.chat.history(roomId, 0);
@@ -265,7 +244,6 @@ const ChatModule = {
       body.innerHTML = emptyState(err.message, '!');
     }
 
-    // qarşı tərəfin onlayn vəziyyəti
     clearInterval(this.presenceTimer);
     this.checkPresence();
     this.presenceTimer = setInterval(() => this.checkPresence(), 20000);
@@ -288,16 +266,10 @@ const ChatModule = {
   updateLiveDot() {
     const label = $('#peerState');
     if (label && !this.connected) {
-      // WS qopubsa REST hələ də işləyir — istifadəçiyə bunu bildiririk
       label.textContent = 'canlı bağlantı yoxdur';
     }
   },
 
-  /* ---------- köhnə mesajlar ---------- */
-
-  /** Yazışmanın ƏN YUXARISINDA duran "Köhnə mesajları yüklə" zolağı. Həmişə mövcuddur
-   *  (boş da olsa) - prepend edilən mesajlar məhz ondan sonra yerləşdirilir, belədə
-   *  sıra pozulmur. */
   renderOlderControl() {
     const body = $('#chatBody');
     if (!body) return;
@@ -332,8 +304,6 @@ const ChatModule = {
     this.historyPage += 1;
     this.historyLast = !!res.last;
 
-    // Yuxarıya əlavə edəndə məzmun "aşağı sürüşür" - istifadəçinin baxdığı yer
-    // yerində qalsın deyə fərqi scrollTop-a əlavə edirik.
     const beforeHeight = body.scrollHeight;
     const beforeTop = body.scrollTop;
 
@@ -351,11 +321,10 @@ const ChatModule = {
     body.scrollTop = beforeTop + (body.scrollHeight - beforeHeight);
   },
 
-  /* ---------- mesaj çıxarma ---------- */
   appendMessage(msg, skipScroll) {
     const body = $('#chatBody');
     if (!body) return;
-    if (msg.id && this.seenIds.has(msg.id)) return;   // dublikatı at
+    if (msg.id && this.seenIds.has(msg.id)) return;
     if (msg.id) this.seenIds.add(msg.id);
 
     body.insertAdjacentHTML('beforeend', this.messageHtml(msg));
@@ -366,8 +335,6 @@ const ChatModule = {
     if (!skipScroll) this.scrollDown();
   },
 
-  /** OFFER mesajının "Qəbul et / Rədd et" düymələri - həm yeni gələn, həm də
-   *  yuxarıdan yüklənən köhnə mesajlar üçün eyni məntiq. */
   bindOfferActions(node, msg) {
     if (!node) return;
     const accept = $('[data-accept]', node);
@@ -384,7 +351,6 @@ const ChatModule = {
     }
 
     if (msg.messageType === 'OFFER') {
-      // Təklifə yalnız qarşı tərəf (müştəri) və yalnız o hələ PENDING ikən cavab verə bilər
       const canRespond = !mine && msg.offerStatus === 'PENDING';
       const stateText = { ACCEPTED: 'Qəbul edildi', REJECTED: 'Rədd edildi' }[msg.offerStatus];
       return '<div class="msg ' + (mine ? 'me' : '') + '" data-msg="' + esc(msg.id) + '">' +
@@ -416,7 +382,6 @@ const ChatModule = {
     if (body) body.scrollTop = body.scrollHeight;
   },
 
-  /* ---------- göndərmə ---------- */
   async sendText() {
     const input = $('#msgInput');
     if (!input) return;
@@ -426,7 +391,6 @@ const ChatModule = {
 
     const payload = { senderId: Session.userId, content: text, messageType: 'TEXT' };
 
-    // WebSocket açıqdırsa oradan — cavab broadcast ilə geri qayıdacaq.
     if (this.connected && this.client) {
       this.client.publish({
         destination: '/app/rooms/' + this.roomId + '/send',
@@ -435,7 +399,6 @@ const ChatModule = {
       return;
     }
 
-    // Ehtiyat yol: REST. Backend burada da broadcast edir, dublikatı id ilə tuturuq.
     try {
       const saved = await Api.chat.send(this.roomId, payload);
       this.appendMessage(saved);
@@ -448,7 +411,7 @@ const ChatModule = {
   sendTyping() {
     if (!this.connected || !this.client || !this.roomId) return;
     const now = Date.now();
-    if (now - this.lastTypingSent < 1800) return;   // hər hərfdə deyil, seyrək göndəririk
+    if (now - this.lastTypingSent < 1800) return;
     this.lastTypingSent = now;
     this.client.publish({
       destination: '/app/rooms/' + this.roomId + '/typing',
@@ -464,7 +427,6 @@ const ChatModule = {
     this.typingTimer = setTimeout(() => { line.textContent = ''; }, 3000);
   },
 
-  /* ---------- təkliflər ---------- */
   promptOffer() {
     openModal('Qiymət təklifi',
       '<label class="field"><span>Məbləğ (AZN)</span>' +
@@ -501,7 +463,6 @@ const ChatModule = {
     buttons.forEach(b => b.disabled = true);
     try {
       const updated = await Api.chat.respondToOffer(this.roomId, messageId, Session.userId, accept);
-      // Təklif kartını yenilənmiş vəziyyətlə əvəz edirik
       this.seenIds.delete(messageId);
       node.outerHTML = this.messageHtml(updated);
       this.seenIds.add(messageId);

@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/** Ustanın uyğunluq təqvimi. Mövcud sifariş yaratma axınına toxunmur - sırf
- *  məlumatlandırma xarakterlidir (bax AvailabilityService javadoc). */
 @RestController
 @RequestMapping("/api/v1/availability")
 @RequiredArgsConstructor
@@ -28,8 +26,6 @@ public class AvailabilityController {
         return ResponseEntity.ok(availabilityService.addSlot(request, callerId));
     }
 
-    /** Ustanın öz idarəetmə görünüşü - keçmiş/dolu daxil, hamısı. Ona görə də
-     *  yalnız ustanın özünə açıqdır; müştəriyə göstərilən siyahı /public-dir. */
     @GetMapping("/artist/{artistId}")
     public ResponseEntity<List<AvailabilitySlotResponse>> getSlotsForArtist(
             @PathVariable Long artistId,
@@ -38,7 +34,6 @@ public class AvailabilityController {
         return ResponseEntity.ok(availabilityService.getSlotsForArtist(artistId));
     }
 
-    /** Müştəriyə göstərilən ictimai siyahı - yalnız gələcək və boş pəncərələr. */
     @GetMapping("/artist/{artistId}/public")
     public ResponseEntity<List<AvailabilitySlotResponse>> getPublicSlots(@PathVariable Long artistId) {
         return ResponseEntity.ok(availabilityService.getPublicSlots(artistId));

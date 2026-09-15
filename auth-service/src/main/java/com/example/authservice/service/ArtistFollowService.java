@@ -15,11 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Müştərinin usta izləməsi (favoritlər).
- *
- *  Kimin kimi izlədiyini yoxlamaq gateway-in işidir: bu servisə yalnız gateway-in
- *  doğruladığı sorğular gəlir, ona görə customerId body/query-dən götürülür -
- *  layihədəki bütün digər endpoint-lərlə eyni məntiq (məs. bron yaradılması). */
 @Service
 @RequiredArgsConstructor
 public class ArtistFollowService {
@@ -47,8 +42,6 @@ public class ArtistFollowService {
                 .build());
     }
 
-    /** İdempotentdir: izləmə yoxdursa da səssizcə uğurlu sayılır - istifadəçi düyməyə
-     *  iki dəfə basanda UI-da yalançı xəta çıxmasın. */
     @Transactional
     public void unfollow(Long customerId, Long artistId) {
         artistFollowRepository.findByCustomerIdAndArtistId(customerId, artistId)
@@ -65,8 +58,6 @@ public class ArtistFollowService {
         return artistFollowRepository.countByArtistId(artistId);
     }
 
-    /** İzlənən ustaların profil xülasəsi. Profili tapılmayan sətir (məs. istifadəçi
-     *  silinibsə) sadəcə buraxılır - bütün siyahını sındırmağın mənası yoxdur. */
     @Transactional(readOnly = true)
     public List<ArtistProfileDto> followedArtists(Long customerId) {
         List<ArtistProfileDto> result = new ArrayList<>();

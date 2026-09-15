@@ -7,15 +7,6 @@ import org.springframework.stereotype.Service;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * Redis-backed artist popularity tracking (spec section 12):
- *   artist:view:{artistId}  - simple view counter (INCR)
- *   popular:artists         - sorted set, score = view count, used to rank artists
- *
- * Redis is NOT the source of truth (PostgreSQL is) - this is a best-effort ranking
- * signal only. If Redis is unreachable, callers must not fail because of it, which is
- * why every operation here swallows exceptions instead of propagating them.
- */
 @Service
 @RequiredArgsConstructor
 public class ArtistPopularityService {
@@ -30,12 +21,9 @@ public class ArtistPopularityService {
             redisTemplate.opsForValue().increment(VIEW_COUNTER_PREFIX + artistProfileId);
             redisTemplate.opsForZSet().incrementScore(POPULAR_ARTISTS_KEY, artistProfileId.toString(), 1);
         } catch (Exception ex) {
-            // Popularity ranking is a nice-to-have; a Redis outage must never break
-            // "view an artist profile".
         }
     }
 
-    /** Usta analitika paneli üçün - sırf oxu, Redis əlçatmaz olsa 0 qaytarır (heç vaxt xəta atmır). */
     public long getViewCount(Long artistProfileId) {
         try {
             String value = redisTemplate.opsForValue().get(VIEW_COUNTER_PREFIX + artistProfileId);

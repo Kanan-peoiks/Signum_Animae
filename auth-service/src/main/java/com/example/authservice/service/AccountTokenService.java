@@ -16,16 +16,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/** Şifrə sıfırlama və email təsdiqi tokenlərinin verilməsi, yoxlanması və
- *  müvafiq məktubun notification-service üzərindən göndərilməsi. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountTokenService {
 
-    /** Şifrə sıfırlama linki qısa yaşamalıdır - ələ keçsə də tez yararsız olsun. */
     private static final long PASSWORD_RESET_HOURS = 1;
-    /** Təsdiq linki üçün bir saat çox azdır (məktub gec oxuna bilər). */
     private static final long EMAIL_VERIFICATION_HOURS = 24;
 
     private final AuthTokenRepository authTokenRepository;
@@ -34,8 +30,6 @@ public class AccountTokenService {
     @Value("${app.frontend-url:http://localhost:5500}")
     private String frontendUrl;
 
-    /** Eyni məqsədlə əvvəlki istifadə olunmamış tokenləri ləğv edir və yenisini verir -
-     *  belədə bir anda yalnız bir etibarlı link olur. */
     @Transactional
     public String issue(Long userId, AuthTokenType type) {
         List<AuthToken> previous = authTokenRepository.findByUserIdAndTypeAndUsedFalse(userId, type);
@@ -56,9 +50,6 @@ public class AccountTokenService {
         return authTokenRepository.save(token).getToken();
     }
 
-    /** Tokeni yoxlayır və dərhal "istifadə olunub" işarələyir (bir dəfəlikdir).
-     *  Vaxtı bitib, artıq istifadə olunub və ya ümumiyyətlə yoxdursa - eyni ümumi
-     *  mesajla 400: hansı halda olduğunu bilmək hücum edənə əlavə məlumat verir. */
     @Transactional
     public AuthToken consume(String rawToken, AuthTokenType expectedType) {
         AuthToken token = authTokenRepository.findByToken(rawToken)
@@ -86,8 +77,6 @@ public class AccountTokenService {
                 "\n\nLink 24 saat ərzində etibarlıdır.");
     }
 
-    /** Məktub göndərilməsə də əsas əməliyyat (qeydiyyat, şifrə sıfırlama sorğusu)
-     *  sınmamalıdır - xəta yalnız log-a düşür. */
     private void sendQuietly(Long userId, String title, String message) {
         try {
             notificationServiceClient.send(NotificationRequest.builder()

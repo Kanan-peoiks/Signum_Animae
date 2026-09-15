@@ -25,22 +25,9 @@ public class ArtistService {
     private final ArtistProfileRepository artistProfileRepository;
     private final ArtistPopularityService artistPopularityService;
 
-    /**
-     * @param minExperienceYears istəyə bağlı filtr - minimum təcrübə ili.
-     * @param sortBy istəyə bağlı sıralama: "rating" (ən yüksək reytinq əvvəldə) və ya
-     *               "experience" (ən təcrübəli əvvəldə). Digər/boş dəyər - sıralamasız
-     *               (verilənlər bazasının öz sırası).
-     * @param pageable səhifə nömrəsi/ölçüsü. Sıralama buradakı sortBy-dan gəlir, ona görə
-     *                 pageable-in öz Sort-u nəzərə alınmır.
-     */
     public Page<ArtistProfileDto> searchArtists(String city, String style, Double minRating,
                                                 Integer minExperienceYears, String sortBy,
                                                 Pageable pageable) {
-        // Spring Data JPA 4.x's Specification.where()/.and() throw on a null argument now
-        // (Assert.notNull inside), unlike older versions where null meant "no restriction".
-        // So we filter out the filters that weren't supplied ourselves, then combine only
-        // the ones that exist via Specification.allOf(...). An empty list is fine: allOf()
-        // falls back to Specification.unrestricted(), i.e. "match everything".
         List<Specification<ArtistProfile>> filters = new ArrayList<>();
 
         Specification<ArtistProfile> citySpec = ArtistSpecifications.hasCity(city);
@@ -70,12 +57,6 @@ public class ArtistService {
         return artistProfileRepository.findAll(spec, sorted).map(this::toDto);
     }
 
-    /**
-     * NOTE: {@code artistUserId} is the artist's USER id - the same id used everywhere
-     * else in the system as "artistId" (Booking.artistId, chat participant ids,
-     * Notification.userId), NOT ArtistProfile.id. Keeping this consistent matters:
-     * booking-service and chat-service only ever know the artist by their user id.
-     */
     public ArtistProfileDto getArtistByUserId(Long artistUserId) {
         ArtistProfile profile = artistProfileRepository.findByUserId(artistUserId)
                 .orElseThrow(() -> new ArtistNotFoundException("Rəssam tapılmadı! userId: " + artistUserId));
@@ -83,7 +64,6 @@ public class ArtistService {
         return toDto(profile);
     }
 
-    /** Usta analitika paneli üçün - profilin neçə dəfə baxıldığı (Redis-dən). */
     public long getViewCount(Long artistUserId) {
         return artistPopularityService.getViewCount(artistUserId);
     }
@@ -97,12 +77,6 @@ public class ArtistService {
         return result;
     }
 
-    /**
-     * Called (via Feign, from booking-service) whenever a new review is created for a
-     * COMPLETED booking. Recomputes the running average incrementally rather than
-     * re-aggregating all reviews, since booking-service - not auth-service - is the
-     * source of truth for review rows.
-     */
     public void updateRatingAfterReview(Long artistUserId, int newRating) {
         ArtistProfile profile = artistProfileRepository.findByUserId(artistUserId)
                 .orElseThrow(() -> new ArtistNotFoundException("Rəssam tapılmadı! userId: " + artistUserId));
@@ -118,15 +92,6 @@ public class ArtistService {
         artistProfileRepository.save(profile);
     }
 
-
-    /**
-     * The self-service gap this closes: before this, an ArtistProfile row was
-     * only ever created (empty) at registration and updated internally after a
-     * review - there was no way for the artist to actually fill in their own
-     * bio/styles/experience. Partial update: a null field in the request leaves
-     * the existing value untouched, so the frontend can send just the one field
-     * that changed.
-     */
     public ArtistProfileDto updateProfile(Long artistUserId, UpdateArtistProfileRequest request) {
         ArtistProfile profile = artistProfileRepository.findByUserId(artistUserId)
                 .orElseThrow(() -> new ArtistNotFoundException("Rəssam tapılmadı! userId: " + artistUserId));
@@ -145,8 +110,6 @@ public class ArtistService {
         return toDto(saved);
     }
 
-    /** ArtistProfile -> ArtistProfileDto. Public-dir ki, ArtistFollowService də eyni
-     *  xülasə formasını təkrar yazmadan istifadə edə bilsin. */
     public ArtistProfileDto toDto(ArtistProfile profile) {
         return ArtistProfileDto.builder()
                 .id(profile.getId())

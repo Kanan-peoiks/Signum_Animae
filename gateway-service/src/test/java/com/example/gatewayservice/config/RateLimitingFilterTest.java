@@ -7,11 +7,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Covers the one thing that matters most about a rate limiter that sits in front of
- * login: it must actually limit abusive traffic, it must never touch unrelated
- * routes, and different callers (IPs) must never affect each other's limit.
- */
 class RateLimitingFilterTest {
 
     @Test

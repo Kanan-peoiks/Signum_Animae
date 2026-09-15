@@ -6,10 +6,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
-/**
- * Presence and typing-indicator state is "nice to have" ephemeral data, so
- * every call is wrapped so a Redis outage never breaks the actual chat.
- */
 @Service
 @RequiredArgsConstructor
 public class PresenceTypingService {

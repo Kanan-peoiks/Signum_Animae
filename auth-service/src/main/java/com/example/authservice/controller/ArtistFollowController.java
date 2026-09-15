@@ -40,8 +40,6 @@ public class ArtistFollowController {
         return ResponseEntity.ok(artistFollowService.followerCount(artistId));
     }
 
-    /** Usta profil səhifəsi düymənin hansı vəziyyətdə çıxacağını bilməlidir -
-     *  bunun üçün bütün izləmə siyahısını çəkmək əvəzinə tək sorğu. */
     @GetMapping("/exists")
     public ResponseEntity<Boolean> isFollowing(@RequestParam Long customerId, @RequestParam Long artistId) {
         return ResponseEntity.ok(artistFollowService.isFollowing(customerId, artistId));

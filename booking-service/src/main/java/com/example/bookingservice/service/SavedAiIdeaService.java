@@ -14,11 +14,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** AI Studiyada alınan bir məsləhəti/analizi saxlamaq (bəyənmək) və istəyə görə
- *  mövcud bir sifarişə bağlamaq. ai-service tamamilə "stateless"dir (öz DB-si
- *  yoxdur), ona görə saxlanmış ideyalar burada, booking-service-in artıq mövcud
- *  olan Postgres bazasında saxlanılır - əlavə bir yeni verilənlər bazası deyil,
- *  sadəcə mövcud bazaya bir yeni cədvəl. */
 @Service
 @RequiredArgsConstructor
 public class SavedAiIdeaService {
@@ -26,7 +21,6 @@ public class SavedAiIdeaService {
     private final SavedAiIdeaRepository savedAiIdeaRepository;
     private final BookingRepository bookingRepository;
 
-    /** customerId doğrulanmış çağırandan - başqasının adından ideya saxlanıla bilməz. */
     public SavedAiIdeaResponse saveIdea(SaveAiIdeaRequest request, Long callerId) {
         SavedAiIdea idea = SavedAiIdea.builder()
                 .customerId(callerId)

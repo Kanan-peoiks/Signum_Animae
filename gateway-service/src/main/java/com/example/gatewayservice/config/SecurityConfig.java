@@ -31,11 +31,6 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        /* ERROR/FORWARD/ASYNC dispatch-ləri artıq bir dəfə icazə alıb keçmiş
-                           sorğunun DAVAMIDIR, yeni sorğu deyil. Spring Security 6 default olaraq
-                           onları da yoxlayır, SecurityContext isə həmin anda boş olur - nəticədə
-                           downstream servis düşəndə (proxy ConnectException atır) cavab 500 yox,
-                           401 olurdu və frontend istifadəçini sistemdən çıxarırdı. */
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD,
                                                 DispatcherType.ASYNC).permitAll()
                         .requestMatchers(
@@ -46,7 +41,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                // 401 (kimlik yoxdur) ilə 403 (icazə yoxdur) ayrılır - bax AuthErrorConfig.
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(unauthenticatedEntryPoint)
                         .accessDeniedHandler(forbiddenHandler))

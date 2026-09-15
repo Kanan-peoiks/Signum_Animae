@@ -20,30 +20,16 @@ public class ChatWebSocketController {
     private final PresenceTypingService presenceTypingService;
     private final SimpMessagingTemplate messagingTemplate;
 
-    /**
-     * Client sends to: /app/rooms/{roomId}/send
-     * Everyone subscribed to /topic/rooms/{roomId} receives the saved message.
-     * No manual broadcast call needed here - saveMessage() already does it,
-     * so both this and the REST fallback controller share one code path.
-     *
-     * The sender is the id PresenceHandshakeInterceptor verified against the client's
-     * JWT at connect time (stored in the STOMP session attributes) - never whatever
-     * request.getSenderId() the client payload claims.
-     */
     @MessageMapping("/rooms/{roomId}/send")
     public void sendMessage(@DestinationVariable Long roomId, ChatMessageRequest request,
                              SimpMessageHeaderAccessor headerAccessor) {
         Long verifiedUserId = sessionUserId(headerAccessor);
         if (verifiedUserId == null) {
-            return; // handshake didn't verify an identity - nothing to trust, drop it.
+            return;
         }
         chatMessageService.saveMessage(roomId, request, verifiedUserId);
     }
 
-    /**
-     * Client sends to: /app/rooms/{roomId}/typing
-     * Everyone subscribed to /topic/rooms/{roomId}/typing gets notified.
-     */
     @MessageMapping("/rooms/{roomId}/typing")
     public void typing(@DestinationVariable Long roomId, TypingEventRequest request,
                         SimpMessageHeaderAccessor headerAccessor) {

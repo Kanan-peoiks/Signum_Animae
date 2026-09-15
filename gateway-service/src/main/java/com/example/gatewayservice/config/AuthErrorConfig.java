@@ -11,22 +11,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-/**
- * "Kim olduğun bilinmir" ilə "kimsən bilirik, amma buna icazən yoxdur" hallarını
- * AYIRIR.
- *
- * Əvvəl hər iki hal 403 qaytarırdı (Spring Security-nin stateless konfiqurasiyada
- * standart davranışı), frontend isə hər 403-ü "sessiya bitdi" sayıb istifadəçini
- * çıxarırdı. Bu, indi real problemdir: chat-service-in "bu söhbət sizə aid deyil"
- * cavabı da 403-dür - yəni bir yanlış klikdən sonra istifadəçi tamamilə çıxarılardı.
- *
- * İndi:
- *   401 - token yoxdur / etibarsızdır / vaxtı bitib  → frontend giriş ekranına qaytarır
- *   403 - token etibarlıdır, amma icazə çatmır       → frontend sadəcə xətanı göstərir
- *
- * Downstream servislərin öz 403-ləri (məs. NotRoomParticipantException) buradan
- * keçmir - onlar proxy ilə olduğu kimi ötürülür, öz mesajları ilə birlikdə.
- */
 @Configuration
 public class AuthErrorConfig {
 
@@ -44,8 +28,6 @@ public class AuthErrorConfig {
                         "Bu əməliyyat üçün icazən yoxdur.");
     }
 
-    /** Servislərin GlobalExceptionHandler-lərinin qaytardığı ErrorResponse ilə eyni
-     *  forma - frontend hər yerdə "message" sahəsini oxuyur. */
     private void writeJson(HttpServletResponse response, HttpStatus status, String message) throws IOException {
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

@@ -12,18 +12,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Deliberately simple, deliberately generous rate limiting on ONLY the login and
- * register endpoints - the two paths someone would hammer to brute-force a password
- * or spam fake accounts. Nothing else in the system is touched by this filter.
- *
- * Fixed-window counter keyed by client IP, held in memory (no Redis needed here - a
- * single gateway instance is plenty at this project's scale). If anything about this
- * filter itself misbehaves (an unexpected exception, whatever), it fails OPEN: the
- * request is let through rather than risking every login getting blocked because of a
- * bug in the limiter - this touches the login path, so a mistake here must never be
- * worse than not rate-limiting at all.
- */
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
@@ -32,10 +20,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             "/api/v1/auth/register"
     };
 
-    /** Generous on purpose - this only needs to stop scripted abuse, not slow down a
-     *  real person who mistypes their password a few times in a row. */
     private static final int MAX_REQUESTS_PER_WINDOW = 20;
-    private static final long WINDOW_MILLIS = 60_000L; // 1 dəqiqə
+    private static final long WINDOW_MILLIS = 60_000L;
     private static final long STALE_AFTER_MILLIS = WINDOW_MILLIS * 5;
     private static final int PRUNE_THRESHOLD = 5000;
 
@@ -54,15 +40,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                 return;
             }
         } catch (Exception ex) {
-            // Fail open: a bug in the limiter must never block a real login/register.
             logger.warn("RateLimitingFilter uğursuz oldu, sorğu buraxılır", ex);
         }
         filterChain.doFilter(request, response);
     }
 
     private boolean isLimitedPath(HttpServletRequest request) {
-        // Yalnız POST - CORS preflight (OPTIONS) onsuz da CorsFilter tərəfindən
-        // zəncirin bu nöqtəsinə çatmadan tutulur, amma dəqiqlik üçün qeyd edək.
         if (!"POST".equalsIgnoreCase(request.getMethod())) {
             return false;
         }
@@ -92,9 +75,6 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
     }
 
-    /** Every request checking the whole map would defeat the purpose of a lightweight
-     *  filter, so cleanup only kicks in occasionally, once the map has grown large
-     *  enough that leaving stale IPs in it would actually matter. */
     private void pruneOccasionally(long now) {
         if (buckets.size() < PRUNE_THRESHOLD || Math.random() > 0.01) {
             return;

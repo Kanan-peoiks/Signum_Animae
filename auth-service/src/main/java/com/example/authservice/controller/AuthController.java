@@ -29,8 +29,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    /** Həmişə 200 və eyni mətn - belə bir email qeydiyyatda olub-olmadığını öyrənmək
-     *  mümkün olmasın deyə (istifadəçi sayma hücumunun qarşısını alır). */
     @PostMapping("/forgot-password")
     public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody EmailRequest request) {
         authService.forgotPassword(request);
@@ -44,7 +42,6 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Şifrə yeniləndi. İndi yeni şifrə ilə daxil ola bilərsən."));
     }
 
-    /** Məktubdakı linkdən açılır, ona görə GET. */
     @GetMapping("/verify-email")
     public ResponseEntity<MessageResponse> verifyEmail(@RequestParam String token) {
         authService.verifyEmail(token);

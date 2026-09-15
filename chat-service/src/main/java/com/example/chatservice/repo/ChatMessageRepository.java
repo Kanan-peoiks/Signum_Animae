@@ -11,17 +11,10 @@ import java.util.List;
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
     List<ChatMessage> findByChatRoomIdOrderByCreatedAtAsc(Long chatRoomId);
 
-    /** Səhifələnmiş tarixçə. Burada səhifələmə TƏRS istiqamətdədir: page=0 ƏN YENİ
-     *  mesajlardır (sıra createdAt DESC), çünki söhbət açılanda son mesajlar görünməlidir,
-     *  "Köhnə mesajları yüklə" isə geriyə doğru gedir. */
     Page<ChatMessage> findByChatRoomId(Long chatRoomId, Pageable pageable);
     List<ChatMessage> findByChatRoomIdAndReadFalseAndSenderIdNot(Long chatRoomId, Long senderId);
 
-    /** Used for the "Söhbətlər" nav badge: how many unread messages (from the OTHER side) are
-     *  waiting across all of this user's rooms, in one query instead of one-per-room. */
     long countByChatRoomIdInAndReadFalseAndSenderIdNot(List<Long> chatRoomIds, Long senderId);
 
-    /** Usta analitika paneli üçün - bu ustanın göndərdiyi bütün OFFER mesajları
-     *  (otaqlarından asılı olmayaraq), qəbul/rədd nisbətini hesablamaq üçün. */
     List<ChatMessage> findByChatRoomIdInAndSenderIdAndMessageType(List<Long> chatRoomIds, Long senderId, MessageType messageType);
 }

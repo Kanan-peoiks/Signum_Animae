@@ -14,6 +14,5 @@ public class OfferStatsResponse {
     private long accepted;
     private long rejected;
     private long pending;
-    /** accepted / (accepted+rejected), 0 if heç biri hələ cavablanmayıb. */
     private double acceptanceRate;
 }

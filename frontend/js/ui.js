@@ -3,8 +3,6 @@
    tarix/reytinq formatlaması.
    ============================================================ */
 
-/* İstifadəçidən gələn hər mətn innerHTML-ə düşməzdən əvvəl
-   buradan keçməlidir — əks halda XSS qapısı açıq qalır. */
 function esc(value) {
   if (value === null || value === undefined) return '';
   return String(value)
@@ -18,7 +16,6 @@ function esc(value) {
 const $  = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-/* ---------- toast ---------- */
 function toast(message, kind = '') {
   const box = document.createElement('div');
   box.className = 'toast ' + kind;
@@ -30,16 +27,11 @@ function toast(message, kind = '') {
   }, kind === 'err' ? 5200 : 3400);
 }
 const toastOk  = (m) => toast(m, 'ok');
-/* lastAuthFailureAt api.js-də tərtib olunur - sessiya bitəndə paralel
-   sorğuların hərəsi ayrıca "err" toast atmasın deyə qısa bir pəncərədə
-   susduruluruq (qlobal signum:unauthorized handler öz mesajını birbaşa
-   toast() ilə göstərir, bu sıxışdırmadan yan keçir). */
 const toastErr = (m) => {
   if (Date.now() - lastAuthFailureAt < 1500) return;
   toast(m, 'err');
 };
 
-/* ---------- modal ---------- */
 function openModal(title, bodyHtml, options = {}) {
   const root = $('#modalRoot');
   const overlay = document.createElement('div');
@@ -73,7 +65,6 @@ function openModal(title, bodyHtml, options = {}) {
   return { overlay, close };
 }
 
-/* ---------- düymə üzərində yüklənmə ---------- */
 function withBusy(button, label) {
   const original = button.innerHTML;
   button.disabled = true;
@@ -81,7 +72,6 @@ function withBusy(button, label) {
   return () => { button.disabled = false; button.innerHTML = original; };
 }
 
-/* ---------- formatlama ---------- */
 function initials(name) {
   if (!name) return '?';
   return name.trim().split(/\s+/).slice(0, 2)
@@ -105,9 +95,6 @@ function ratingBlock(avg, count) {
          '<span class="rating-num">' + a.toFixed(1) + ' (' + c + ')</span></span>';
 }
 
-/* Backend LocalDateTime-ı "2026-09-05T14:30:00" kimi qaytarır.
-   toLocaleDateString('az-AZ') qısa ay üçün "M09" verir — oxunaqlı deyil,
-   ona görə ay adlarını özümüz yazırıq. */
 const AY = ['yan','fev','mar','apr','may','iyn','iyl','avq','sen','okt','noy','dek'];
 
 function parseDate(iso) {
@@ -150,7 +137,6 @@ const STATUS_AZ = {
 const statusBadge = (s) =>
   '<span class="badge ' + esc(s) + '">' + esc(STATUS_AZ[s] || s || '—') + '</span>';
 
-/* ---------- ümumi bloklar ---------- */
 const spinner = () => '<div class="spinner"></div>';
 
 function emptyState(text, mark = '✵') {
@@ -162,7 +148,6 @@ function pageHead(title, subtitle) {
          (subtitle ? '<p class="page-sub">' + esc(subtitle) + '</p>' : '') + '</div>';
 }
 
-/* "Realism, Blackwork" → nişanlar. Backend-də styles sadə String-dir. */
 function styleChips(styles) {
   if (!styles || !String(styles).trim()) return '';
   return '<div class="chips">' +

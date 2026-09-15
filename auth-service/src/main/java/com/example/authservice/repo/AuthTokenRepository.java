@@ -11,7 +11,5 @@ public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
 
     Optional<AuthToken> findByToken(String token);
 
-    /** Yeni token veriləndə köhnələri "used" işarələmək üçün - eyni istifadəçinin
-     *  eyni məqsədlə bir neçə etibarlı tokeni qalmasın. */
     List<AuthToken> findByUserIdAndTypeAndUsedFalse(Long userId, AuthTokenType type);
 }

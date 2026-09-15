@@ -38,9 +38,6 @@ public class ReviewService {
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new BookingNotFoundException("Bron tapılmadı! ID: " + request.getBookingId()));
 
-        // Ownership is checked against the VERIFIED caller (X-User-Id from the gateway),
-        // never against request.getCustomerId() - otherwise anyone could write a review
-        // "as" someone else's customerId for a booking that isn't theirs.
         if (!booking.getCustomerId().equals(callerId)) {
             throw new ReviewOwnershipException("Bu bron sizə aid deyil, rəy yaza bilməzsiniz.");
         }
@@ -67,12 +64,6 @@ public class ReviewService {
         try {
             authServiceClient.updateArtistRating(booking.getArtistId(), new UpdateArtistRatingRequest(request.getRating()));
         } catch (Exception ex) {
-            // The review row is the source of truth and is already saved. The artist's
-            // ratingAvg/ratingCount in auth-service is a derived cache - if this call
-            // fails (auth-service down, network blip) we don't want to roll back a
-            // legitimate review over it. Worth revisiting with a retry/reconciliation
-            // job if this matters for the demo. Logged (not swallowed silently) so a
-            // real failure here is actually visible instead of just "rating never updates".
             log.error("Rəssamın reytinqi yenilənmədi (artistId={}, rating={}): {}",
                     booking.getArtistId(), request.getRating(), ex.getMessage(), ex);
         }
@@ -80,21 +71,15 @@ public class ReviewService {
         return mapToResponse(saved);
     }
 
-    /** Ən yeni rəy əvvəldə. Sıralama əvvəllər yox idi (verilənlər bazasının öz sırası),
-     *  səhifələmə üçün isə sabit sıra məcburidir. */
     public Page<ReviewResponse> getReviewsForArtist(Long artistId, Pageable pageable) {
         return reviewRepository.findByArtistId(artistId, pageable).map(this::mapToResponse);
     }
 
-    /** Usta öz rəyinə ictimai cavab yazır/redaktə edir - artistId review-un öz artistId-si
-     *  ilə üst-üstə düşməlidir, əks halda başqa ustanın adından cavab yazıla bilərdi. */
     @Transactional
     public ReviewResponse addReply(Long reviewId, ReviewReplyRequest request, Long callerId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ReviewNotFoundException("Rəy tapılmadı! ID: " + reviewId));
 
-        // Doğrulanmış çağıranla müqayisə olunur, gövdədəki artistId ilə yox - əks halda
-        // istənilən usta başqasının rəyinə onun adından cavab yaza bilərdi.
         if (!review.getArtistId().equals(callerId)) {
             throw new ReviewOwnershipException("Bu rəy sizə aid deyil, cavab yaza bilməzsiniz.");
         }
@@ -105,12 +90,10 @@ public class ReviewService {
         return mapToResponse(saved);
     }
 
-    /** Admin moderasiya paneli üçün - bütün rəyləri (hər ustaya aid) sadəcə sıralamasız qaytarır. */
     public Page<ReviewResponse> getAllReviews(Pageable pageable) {
         return reviewRepository.findAll(pageable).map(this::mapToResponse);
     }
 
-    /** Admin moderasiya paneli üçün - uyğunsuz/təhqiramiz rəyi tamamilə silir. */
     @Transactional
     public void deleteReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)

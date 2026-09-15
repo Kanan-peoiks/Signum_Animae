@@ -21,8 +21,6 @@ public class ArtistController {
 
     private final ArtistService artistService;
 
-    /** Səhifələnmişdir: ?page=0&size=20. Cavab PageResponse-dur - siyahı əvvəlki kimi
-     *  birbaşa yox, "content" sahəsinin içində gəlir. */
     @GetMapping("/public/search")
     public ResponseEntity<PageResponse<ArtistProfileDto>> searchArtists(
             @RequestParam(required = false) String city,
@@ -50,8 +48,6 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getArtistByUserId(id));
     }
 
-
-    // Usta analitika paneli
     @GetMapping("/{userId}/views")
     public ResponseEntity<Long> getViewCount(@PathVariable Long userId) {
         return ResponseEntity.ok(artistService.getViewCount(userId));

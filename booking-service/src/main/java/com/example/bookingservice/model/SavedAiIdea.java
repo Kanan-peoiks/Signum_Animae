@@ -5,9 +5,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/** AI Studiyada alınmış bir məsləhətin/analizin müştəri tərəfindən saxlanmış
- *  (bəyənilmiş) surəti. Sonradan mövcud bir sifarişə bağlana bilər - sırf
- *  məlumatlandırma xarakterlidir, sifariş yaratma axınına toxunmur. */
 @Entity
 @Table(name = "saved_ai_ideas")
 @Getter
@@ -32,7 +29,6 @@ public class SavedAiIdea {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String aiRecommendation;
 
-    /** Nullable - hələ heç bir sifarişə bağlanmayıb. */
     private Long bookingId;
 
     private LocalDateTime createdAt;

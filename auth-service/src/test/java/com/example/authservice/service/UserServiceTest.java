@@ -16,12 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Covers the email-masking rule added alongside the cross-service authorization fixes:
- * GET /api/v1/users/{id} used to return the SAME full profile (including email) no
- * matter who asked - any logged-in user could read a stranger's email. Now only the
- * profile's own owner gets it back.
- */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
@@ -49,7 +43,7 @@ class UserServiceTest {
         UserProfileDto dto = userService.getUser(7L, true);
 
         assertThat(dto.getEmail()).isEqualTo("aygun@test.com");
-        assertThat(dto.getFullName()).isEqualTo("Aygün Məmmədova"); // name is still public either way
+        assertThat(dto.getFullName()).isEqualTo("Aygün Məmmədova");
     }
 
     @Test

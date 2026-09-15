@@ -9,17 +9,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-/** Moderation-only operations. Reachable ONLY through /api/v1/admin/** - the gateway
- *  is what actually restricts this to callers with a verified ADMIN role in their JWT
- *  (see gateway-service's SecurityConfig); nothing in this service re-checks that,
- *  same trust boundary every other cross-service call in this project relies on. */
 @Service
 @RequiredArgsConstructor
 public class AdminService {
 
     private final UserRepo userRepository;
 
-    /** Səhifələnmiş: sıra pageable-dən gəlir (ən yeni qeydiyyat əvvəldə). */
     public Page<AdminUserResponse> listUsers(Pageable pageable) {
         return userRepository.findAll(pageable).map(this::mapToResponse);
     }

@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** "Şifrəni unutdum" və "təsdiq linkini yenidən göndər" axınlarının ortaq gövdəsi. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

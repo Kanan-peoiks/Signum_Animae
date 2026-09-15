@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/** Admin panelinin bron/rəy göstəriciləri - yalnız oxuma, heç bir mövcud axına toxunmur. */
 @Service
 @RequiredArgsConstructor
 public class AdminStatsService {

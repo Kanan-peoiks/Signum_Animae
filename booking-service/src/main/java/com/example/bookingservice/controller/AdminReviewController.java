@@ -9,8 +9,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/** Admin moderasiya paneli üçün rəylərə baxış/silmə - gateway artıq ROLE_ADMIN yoxlayıb
- *  buraya yalnız admin JWT-si ilə gəldiyini təmin edir. */
 @RestController
 @RequestMapping("/api/v1/admin/reviews")
 @RequiredArgsConstructor
@@ -18,7 +16,6 @@ public class AdminReviewController {
 
     private final ReviewService reviewService;
 
-    /** Səhifələnmişdir: ?page=0&size=20, cavab PageResponse ("content" içində). */
     @GetMapping
     public ResponseEntity<PageResponse<ReviewResponse>> getAllReviews(
             @RequestParam(defaultValue = "0") int page,

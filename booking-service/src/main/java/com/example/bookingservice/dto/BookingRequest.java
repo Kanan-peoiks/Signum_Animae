@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 
 @Data
 public class BookingRequest {
-    /** Artıq etibar edilmir - customerId həmişə çağıranın özündən (X-User-Id) götürülür,
-     *  bax BookingController/BookingService.createBooking. */
     private Long customerId;
 
     @NotNull(message = "artistId tələb olunur")

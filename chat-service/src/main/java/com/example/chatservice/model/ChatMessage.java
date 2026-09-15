@@ -31,10 +31,8 @@ public class ChatMessage {
     @Column(nullable = false)
     private MessageType messageType;
 
-    /** Only meaningful when messageType == OFFER. */
     private Double amount;
 
-    /** Only meaningful when messageType == OFFER. Null for every other message type. */
     @Enumerated(EnumType.STRING)
     private OfferStatus offerStatus;
 

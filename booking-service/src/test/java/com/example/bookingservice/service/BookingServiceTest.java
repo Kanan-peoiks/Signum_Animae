@@ -23,14 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * Covers two things that used to have NO automated check at all:
- *  1. createBooking must use the verified caller as customerId, never whatever the
- *     request body claims (see BookingController/BookingService.createBooking).
- *  2. the "past tattoos" completed-summary endpoint must never leak price/notes-as-
- *     price, and must resolve the artist's real name (falling back to a generic
- *     label if auth-service can't be reached).
- */
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
 
@@ -44,7 +36,7 @@ class BookingServiceTest {
     @Test
     void createBooking_usesCallerIdAsCustomerId_ignoringRequestBody() {
         BookingRequest request = new BookingRequest();
-        request.setCustomerId(999L); // an attacker trying to book "as" someone else
+        request.setCustomerId(999L);
         request.setArtistId(5L);
         request.setBookingDate(LocalDateTime.now().plusDays(1));
 
@@ -80,8 +72,6 @@ class BookingServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getArtistName()).isEqualTo("Nihat İnk");
         assertThat(result.get(0).getDescription()).isEqualTo("Kürəkdə portret");
-        // CompletedTattooDto has no price field at all - this would fail to compile if
-        // someone "helpfully" added estimatedPrice back to it.
     }
 
     @Test
@@ -96,7 +86,7 @@ class BookingServiceTest {
         List<CompletedTattooDto> result = bookingService.getCompletedSummaryForCustomer(7L);
 
         assertThat(result).isEmpty();
-        verifyNoInteractions(authServiceClient); // no bookings to describe -> no need to even ask
+        verifyNoInteractions(authServiceClient);
     }
 
     @Test
@@ -111,7 +101,6 @@ class BookingServiceTest {
 
         List<CompletedTattooDto> result = bookingService.getCompletedSummaryForCustomer(7L);
 
-        // Never blows up, and falls back to a generic label instead of a null name.
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getArtistName()).isEqualTo("Usta");
     }

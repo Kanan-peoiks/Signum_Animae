@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/** Admin paneli üçün platforma səviyyəsində istifadəçi mənzərəsi. Yalnız auth-service-in
- *  gördüyü hissə (istifadəçilər/şəhərlər) - bron və rəy statistikası booking-service-in
- *  öz endpoint-indən gəlir, frontend ikisini yan-yana göstərir. */
 @Data
 @Builder
 @NoArgsConstructor

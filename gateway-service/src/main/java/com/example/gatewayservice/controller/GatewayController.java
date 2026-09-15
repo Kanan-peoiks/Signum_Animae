@@ -1,6 +1,5 @@
 package com.example.gatewayservice.controller;
 
-
 import com.example.gatewayservice.config.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
