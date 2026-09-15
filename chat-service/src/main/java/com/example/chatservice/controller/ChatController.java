@@ -3,12 +3,18 @@ package com.example.chatservice.controller;
 import com.example.chatservice.dto.ChatMessageRequest;
 import com.example.chatservice.dto.OfferResponseRequest;
 import com.example.chatservice.dto.ChatMessageResponse;
+import com.example.chatservice.dto.PageParams;
+import com.example.chatservice.dto.PageResponse;
 import com.example.chatservice.service.ChatMessageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,9 +36,29 @@ public class ChatController {
         return ResponseEntity.ok(chatMessageService.saveMessage(roomId, request, request.getSenderId()));
     }
 
+    /**
+     * Səhifələnmiş tarixçə, TƏRS istiqamətdə: {@code page=0} ən YENİ mesajlardır,
+     * {@code page=1} ondan əvvəlkilər və s. ("Köhnə mesajları yüklə" məntəqi).
+     *
+     * Səhifənin İÇİNDKİ sıra isə normaldır - köhnədən yeniyə, ekranda olduğu kimi:
+     * verilənlər bazasından DESC gələn səhifəni burada çeviririk ki, klient əlavə iş
+     * görmədən "content"-i olduğu kimi yazışma sahəsinə əlavə edə bilsin.
+     */
     @GetMapping
-    public ResponseEntity<List<ChatMessageResponse>> getHistory(@PathVariable Long roomId) {
-        return ResponseEntity.ok(chatMessageService.getHistory(roomId, null));
+    public ResponseEntity<PageResponse<ChatMessageResponse>> getHistory(
+            @PathVariable Long roomId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "30") int size) {
+
+        Sort newestFirst = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        Page<ChatMessageResponse> newestPage =
+                chatMessageService.getHistory(roomId, null, PageParams.of(page, size, newestFirst));
+
+        PageResponse<ChatMessageResponse> body = PageResponse.from(newestPage);
+        List<ChatMessageResponse> chronological = new ArrayList<>(body.getContent());
+        Collections.reverse(chronological);
+        body.setContent(chronological);
+        return ResponseEntity.ok(body);
     }
 
     @PatchMapping("/read")

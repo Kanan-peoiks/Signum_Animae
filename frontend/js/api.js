@@ -11,6 +11,9 @@ const API_BASE = 'http://localhost:8080';
 /* Səhifələnmiş siyahılarda bir dəfəyə çəkilən element sayı. Backend 100-dən
    böyük ölçünü onsuz da 100-ə endirir (bax PageParams). */
 const PAGE_SIZE = 12;
+/* Söhbətdə bir dəfəyə çəkilən mesaj sayı - siyahılardan böyükdür, çünki
+   mesajlar qısadır və söhbət açılanda kifayət qədər kontekst görünməlidir. */
+const CHAT_PAGE_SIZE = 30;
 const WS_URL   = 'ws://localhost:8083/ws-tattoo';
 
 /* ---------- sessiya yaddaşı ---------- */
@@ -208,7 +211,10 @@ const Api = {
     room:            (roomId) => GET('/api/v1/chat/rooms/' + roomId),
     roomsForCustomer:(customerId) => GET('/api/v1/chat/rooms/customer/' + customerId),
     roomsForArtist:  (artistId) => GET('/api/v1/chat/rooms/artist/' + artistId),
-    history:         (roomId) => GET('/api/v1/chat/rooms/' + roomId + '/messages'),
+    /* Tərs səhifələmə: page=0 ƏN YENİ mesajlardır, page artdıqca köhnəyə gedirik.
+       Səhifənin içindəki sıra normaldır (köhnədən yeniyə) - backend çevirib göndərir. */
+    history:         (roomId, page = 0, size = CHAT_PAGE_SIZE) =>
+                     GET('/api/v1/chat/rooms/' + roomId + '/messages?page=' + page + '&size=' + size),
     send:            (roomId, payload) => POST('/api/v1/chat/rooms/' + roomId + '/messages', payload),
     markRead:        (roomId, userId) => PATCH('/api/v1/chat/rooms/' + roomId + '/messages/read?userId=' + userId),
     respondToOffer:  (roomId, messageId, userId, accept) =>

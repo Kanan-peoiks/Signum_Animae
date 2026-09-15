@@ -20,6 +20,10 @@ const ChatModule = {
   subTyping: null,
 
   seenIds: new Set(),      // eyni mesajın iki dəfə əlavə olunmasının qarşısını alır
+
+  // Tarixçə tərs səhifələnir: 0 - ən yeni səhifə, rəqəm artdıqca köhnəyə gedirik.
+  historyPage: 0,
+  historyLast: true,
   peerCache: new Map(),    // userId -> fullName
   bookingDateCache: new Map(),  // bookingId -> formatted date
 
@@ -192,6 +196,8 @@ const ChatModule = {
     this.peerId = peerId;
     this.bookingId = bookingId;
     this.seenIds.clear();
+    this.historyPage = 0;
+    this.historyLast = true;
 
     // Ad və bronun cari statusunu paralel çəkirik - ləğv edilmiş bron üçün
     // söhbətə davam etmək olsun, amma yeni qiymət təklifi göndərmək OLMASIN
@@ -240,12 +246,15 @@ const ChatModule = {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.sendText(); });
     input.addEventListener('input', () => this.sendTyping());
 
-    // tarixçə
+    // tarixçə - yalnız son səhifə yüklənir, köhnələr düymə ilə gəlir
     const body = $('#chatBody');
     try {
-      const history = await Api.chat.history(roomId);
+      const res = await Api.chat.history(roomId, 0);
+      this.historyPage = 0;
+      this.historyLast = !!res.last;
       body.innerHTML = '';
-      history.forEach(m => this.appendMessage(m, true));
+      this.renderOlderControl();
+      (res.content || []).forEach(m => this.appendMessage(m, true));
       this.scrollDown();
       await Api.chat.markRead(roomId, Session.userId).catch(() => {});
       App.refreshChatBadge();
@@ -281,6 +290,64 @@ const ChatModule = {
     }
   },
 
+  /* ---------- köhnə mesajlar ---------- */
+
+  /** Yazışmanın ƏN YUXARISINDA duran "Köhnə mesajları yüklə" zolağı. Həmişə mövcuddur
+   *  (boş da olsa) - prepend edilən mesajlar məhz ondan sonra yerləşdirilir, belədə
+   *  sıra pozulmur. */
+  renderOlderControl() {
+    const body = $('#chatBody');
+    if (!body) return;
+    let wrap = $('#olderWrap', body);
+    if (!wrap) {
+      body.insertAdjacentHTML('afterbegin', '<div id="olderWrap"></div>');
+      wrap = $('#olderWrap', body);
+    }
+    wrap.innerHTML = this.historyLast ? '' :
+      '<div style="text-align:center;padding:6px 0 10px">' +
+        '<button class="btn btn-ghost btn-sm" id="olderBtn">Köhnə mesajları yüklə</button></div>';
+
+    const btn = $('#olderBtn', body);
+    if (btn) btn.addEventListener('click', () => this.loadOlderMessages());
+  },
+
+  async loadOlderMessages() {
+    const body = $('#chatBody');
+    if (!body || this.historyLast) return;
+    const btn = $('#olderBtn', body);
+    if (btn) { btn.disabled = true; btn.textContent = 'Yüklənir…'; }
+
+    let res;
+    try {
+      res = await Api.chat.history(this.roomId, this.historyPage + 1);
+    } catch (err) {
+      toastErr(err.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Köhnə mesajları yüklə'; }
+      return;
+    }
+
+    this.historyPage += 1;
+    this.historyLast = !!res.last;
+
+    // Yuxarıya əlavə edəndə məzmun "aşağı sürüşür" - istifadəçinin baxdığı yer
+    // yerində qalsın deyə fərqi scrollTop-a əlavə edirik.
+    const beforeHeight = body.scrollHeight;
+    const beforeTop = body.scrollTop;
+
+    let ref = $('#olderWrap', body);
+    (res.content || []).forEach(m => {
+      if (m.id && this.seenIds.has(m.id)) return;
+      if (m.id) this.seenIds.add(m.id);
+      ref.insertAdjacentHTML('afterend', this.messageHtml(m));
+      const node = ref.nextElementSibling;
+      this.bindOfferActions(node, m);
+      ref = node;
+    });
+
+    this.renderOlderControl();
+    body.scrollTop = beforeTop + (body.scrollHeight - beforeHeight);
+  },
+
   /* ---------- mesaj çıxarma ---------- */
   appendMessage(msg, skipScroll) {
     const body = $('#chatBody');
@@ -291,13 +358,19 @@ const ChatModule = {
     body.insertAdjacentHTML('beforeend', this.messageHtml(msg));
     if (Number(msg.senderId) !== Number(Session.userId)) App.refreshChatBadge();
 
-    const node = body.lastElementChild;
+    this.bindOfferActions(body.lastElementChild, msg);
+
+    if (!skipScroll) this.scrollDown();
+  },
+
+  /** OFFER mesajının "Qəbul et / Rədd et" düymələri - həm yeni gələn, həm də
+   *  yuxarıdan yüklənən köhnə mesajlar üçün eyni məntiq. */
+  bindOfferActions(node, msg) {
+    if (!node) return;
     const accept = $('[data-accept]', node);
     const reject = $('[data-reject]', node);
     if (accept) accept.addEventListener('click', () => this.respondOffer(msg.id, true, node));
     if (reject) reject.addEventListener('click', () => this.respondOffer(msg.id, false, node));
-
-    if (!skipScroll) this.scrollDown();
   },
 
   messageHtml(msg) {

@@ -17,6 +17,8 @@ import com.example.chatservice.repo.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -122,12 +124,12 @@ public class ChatMessageService {
         return ChatMessageResponse.fromEntity(savedOffer);
     }
 
-    public List<ChatMessageResponse> getHistory(Long roomId, Long callerId) {
+    /** Qaytarılan səhifə TƏRS sıradadır (ən yeni əvvəldə) - kontroller onu ekrana
+     *  verməzdən əvvəl çevirir, bax ChatController.getHistory. */
+    public Page<ChatMessageResponse> getHistory(Long roomId, Long callerId, Pageable pageable) {
         ChatRoom room = chatRoomService.findRoomOrThrow(roomId);
         requireParticipant(room, callerId);
-        return chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId).stream()
-                .map(ChatMessageResponse::fromEntity)
-                .collect(Collectors.toList());
+        return chatMessageRepository.findByChatRoomId(roomId, pageable).map(ChatMessageResponse::fromEntity);
     }
 
     /** Usta analitika paneli üçün - bu ustanın göndərdiyi bütün OFFER-lərin

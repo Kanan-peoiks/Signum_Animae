@@ -2,12 +2,19 @@ package com.example.chatservice.repo;
 
 import com.example.chatservice.model.ChatMessage;
 import com.example.chatservice.model.MessageType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
     List<ChatMessage> findByChatRoomIdOrderByCreatedAtAsc(Long chatRoomId);
+
+    /** Səhifələnmiş tarixçə. Burada səhifələmə TƏRS istiqamətdədir: page=0 ƏN YENİ
+     *  mesajlardır (sıra createdAt DESC), çünki söhbət açılanda son mesajlar görünməlidir,
+     *  "Köhnə mesajları yüklə" isə geriyə doğru gedir. */
+    Page<ChatMessage> findByChatRoomId(Long chatRoomId, Pageable pageable);
     List<ChatMessage> findByChatRoomIdAndReadFalseAndSenderIdNot(Long chatRoomId, Long senderId);
 
     /** Used for the "Söhbətlər" nav badge: how many unread messages (from the OTHER side) are
