@@ -1,5 +1,6 @@
 package com.example.bookingservice.controller;
 
+import com.example.bookingservice.config.GatewayHeaders;
 import com.example.bookingservice.dto.BookingRequest;
 import com.example.bookingservice.dto.BookingResponse;
 import com.example.bookingservice.dto.ArtistStatsDto;
@@ -8,6 +9,7 @@ import com.example.bookingservice.dto.PageParams;
 import com.example.bookingservice.dto.PageResponse;
 import com.example.bookingservice.dto.UpdateBookingPriceRequest;
 import com.example.bookingservice.dto.UpdateStatusRequest;
+import com.example.bookingservice.security.AccessGuard;
 import com.example.bookingservice.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,16 +33,20 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
-        return ResponseEntity.ok(bookingService.createBooking(request, request.getCustomerId()));
+    public ResponseEntity<BookingResponse> createBooking(
+            @Valid @RequestBody BookingRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(bookingService.createBooking(request, callerId));
     }
 
     /** Restricted to the booking's own customer/artist - a booking's notes/price are
      *  private between the two of them (the "past tattoos" feature uses the separate,
      *  deliberately-public completed-summary endpoint below instead of this one). */
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.getBookingById(id));
+    public ResponseEntity<BookingResponse> getBookingById(
+            @PathVariable Long id,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(bookingService.getBookingByIdForCaller(id, callerId));
     }
 
     /** "My orders" list - private, customer-only. Səhifələnmişdir (?page=&size=). */
@@ -48,7 +54,9 @@ public class BookingController {
     public ResponseEntity<PageResponse<BookingResponse>> getBookingsByCustomer(
             @PathVariable Long customerId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(customerId, callerId);
         return ResponseEntity.ok(PageResponse.from(
                 bookingService.getBookingsByCustomer(customerId, PageParams.of(page, size, NEWEST_FIRST))));
     }
@@ -58,14 +66,19 @@ public class BookingController {
     public ResponseEntity<PageResponse<BookingResponse>> getBookingsByArtist(
             @PathVariable Long artistId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(artistId, callerId);
         return ResponseEntity.ok(PageResponse.from(
                 bookingService.getBookingsByArtist(artistId, PageParams.of(page, size, NEWEST_FIRST))));
     }
 
-    /** Usta analitika paneli - sifariş sayları və qazanc. */
+    /** Usta analitika paneli - sifariş sayları və qazanc. Yalnız ustanın özü. */
     @GetMapping("/artist/{artistId}/stats")
-    public ResponseEntity<ArtistStatsDto> getArtistStats(@PathVariable Long artistId) {
+    public ResponseEntity<ArtistStatsDto> getArtistStats(
+            @PathVariable Long artistId,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(artistId, callerId);
         return ResponseEntity.ok(bookingService.getArtistStats(artistId));
     }
 
@@ -82,8 +95,9 @@ public class BookingController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<BookingResponse> updateBookingStatus(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateStatusRequest request) {
-        return ResponseEntity.ok(bookingService.updateBookingStatus(id, request.getStatus()));
+            @Valid @RequestBody UpdateStatusRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(bookingService.updateBookingStatus(id, request.getStatus(), callerId));
     }
 
     /**

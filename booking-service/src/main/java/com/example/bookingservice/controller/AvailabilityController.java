@@ -1,7 +1,9 @@
 package com.example.bookingservice.controller;
 
+import com.example.bookingservice.config.GatewayHeaders;
 import com.example.bookingservice.dto.AvailabilitySlotRequest;
 import com.example.bookingservice.dto.AvailabilitySlotResponse;
+import com.example.bookingservice.security.AccessGuard;
 import com.example.bookingservice.service.AvailabilityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +22,19 @@ public class AvailabilityController {
     private final AvailabilityService availabilityService;
 
     @PostMapping
-    public ResponseEntity<AvailabilitySlotResponse> addSlot(@Valid @RequestBody AvailabilitySlotRequest request) {
-        return ResponseEntity.ok(availabilityService.addSlot(request));
+    public ResponseEntity<AvailabilitySlotResponse> addSlot(
+            @Valid @RequestBody AvailabilitySlotRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(availabilityService.addSlot(request, callerId));
     }
 
-    /** Ustanın öz idarəetmə görünüşü - keçmiş/dolu daxil, hamısı. */
+    /** Ustanın öz idarəetmə görünüşü - keçmiş/dolu daxil, hamısı. Ona görə də
+     *  yalnız ustanın özünə açıqdır; müştəriyə göstərilən siyahı /public-dir. */
     @GetMapping("/artist/{artistId}")
-    public ResponseEntity<List<AvailabilitySlotResponse>> getSlotsForArtist(@PathVariable Long artistId) {
+    public ResponseEntity<List<AvailabilitySlotResponse>> getSlotsForArtist(
+            @PathVariable Long artistId,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        AccessGuard.requireSelf(artistId, callerId);
         return ResponseEntity.ok(availabilityService.getSlotsForArtist(artistId));
     }
 
@@ -37,15 +45,18 @@ public class AvailabilityController {
     }
 
     @PatchMapping("/{id}/booked")
-    public ResponseEntity<AvailabilitySlotResponse> setBooked(@PathVariable Long id,
-                                                               @RequestParam Long artistId,
-                                                               @RequestParam boolean booked) {
-        return ResponseEntity.ok(availabilityService.setBooked(id, artistId, booked));
+    public ResponseEntity<AvailabilitySlotResponse> setBooked(
+            @PathVariable Long id,
+            @RequestParam boolean booked,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(availabilityService.setBooked(id, callerId, booked));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSlot(@PathVariable Long id, @RequestParam Long artistId) {
-        availabilityService.deleteSlot(id, artistId);
+    public ResponseEntity<Void> deleteSlot(
+            @PathVariable Long id,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        availabilityService.deleteSlot(id, callerId);
         return ResponseEntity.ok().build();
     }
 }

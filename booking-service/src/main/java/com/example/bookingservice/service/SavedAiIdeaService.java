@@ -26,9 +26,10 @@ public class SavedAiIdeaService {
     private final SavedAiIdeaRepository savedAiIdeaRepository;
     private final BookingRepository bookingRepository;
 
-    public SavedAiIdeaResponse saveIdea(SaveAiIdeaRequest request) {
+    /** customerId doğrulanmış çağırandan - başqasının adından ideya saxlanıla bilməz. */
+    public SavedAiIdeaResponse saveIdea(SaveAiIdeaRequest request, Long callerId) {
         SavedAiIdea idea = SavedAiIdea.builder()
-                .customerId(request.getCustomerId())
+                .customerId(callerId)
                 .prompt(request.getPrompt())
                 .style(request.getStyle())
                 .aiRecommendation(request.getAiRecommendation())

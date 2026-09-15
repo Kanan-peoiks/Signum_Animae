@@ -26,6 +26,11 @@ public class GlobalExceptionHandler {
         return build(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(NotOwnerException.class)
+    public ResponseEntity<ErrorResponse> handleNotOwner(NotOwnerException ex) {
+        return build(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(ReviewOwnershipException.class)
     public ResponseEntity<ErrorResponse> handleReviewOwnership(ReviewOwnershipException ex) {
         return build(ex.getMessage(), HttpStatus.FORBIDDEN);

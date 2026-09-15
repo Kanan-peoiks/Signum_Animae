@@ -987,7 +987,7 @@ const App = {
         const id = Number(btn.dataset.id);
         const newBooked = btn.dataset.booked !== 'true';
         try {
-          await Api.availability.setBooked(id, Session.userId, newBooked);
+          await Api.availability.setBooked(id, newBooked);
           this.pageAvailability(host);
         } catch (err) {
           toastErr(err.message);
@@ -999,7 +999,7 @@ const App = {
       btn.addEventListener('click', async () => {
         const id = Number(btn.dataset.id);
         try {
-          await Api.availability.remove(id, Session.userId);
+          await Api.availability.remove(id);
           toastOk('Pəncərə silindi.');
           this.pageAvailability(host);
         } catch (err) {
@@ -1153,7 +1153,7 @@ const App = {
 
     $$('.delete-idea', box).forEach(b => b.addEventListener('click', async () => {
       try {
-        await Api.aiIdeas.remove(Number(b.dataset.id), Session.userId);
+        await Api.aiIdeas.remove(Number(b.dataset.id));
         toastOk('Silindi.');
         this.loadAiHistory(host);
       } catch (err) { toastErr(err.message); }
@@ -1188,7 +1188,7 @@ const App = {
           const bookingId = Number($('#linkBookingSelect', ov).value);
           const done = withBusy(okBtn, 'Bağlanır');
           try {
-            await Api.aiIdeas.link(ideaId, Session.userId, bookingId);
+            await Api.aiIdeas.link(ideaId, bookingId);
             close();
             toastOk('Sifarişə bağlandı.');
             this.loadAiHistory(host);

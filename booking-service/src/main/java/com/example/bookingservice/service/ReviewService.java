@@ -89,11 +89,13 @@ public class ReviewService {
     /** Usta öz rəyinə ictimai cavab yazır/redaktə edir - artistId review-un öz artistId-si
      *  ilə üst-üstə düşməlidir, əks halda başqa ustanın adından cavab yazıla bilərdi. */
     @Transactional
-    public ReviewResponse addReply(Long reviewId, ReviewReplyRequest request) {
+    public ReviewResponse addReply(Long reviewId, ReviewReplyRequest request, Long callerId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ReviewNotFoundException("Rəy tapılmadı! ID: " + reviewId));
 
-        if (!review.getArtistId().equals(request.getArtistId())) {
+        // Doğrulanmış çağıranla müqayisə olunur, gövdədəki artistId ilə yox - əks halda
+        // istənilən usta başqasının rəyinə onun adından cavab yaza bilərdi.
+        if (!review.getArtistId().equals(callerId)) {
             throw new ReviewOwnershipException("Bu rəy sizə aid deyil, cavab yaza bilməzsiniz.");
         }
 

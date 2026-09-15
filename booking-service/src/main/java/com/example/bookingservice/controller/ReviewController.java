@@ -1,5 +1,6 @@
 package com.example.bookingservice.controller;
 
+import com.example.bookingservice.config.GatewayHeaders;
 import com.example.bookingservice.dto.PageParams;
 import com.example.bookingservice.dto.PageResponse;
 import com.example.bookingservice.dto.ReviewReplyRequest;
@@ -20,8 +21,10 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody ReviewRequest request) {
-        return ResponseEntity.ok(reviewService.createReview(request, request.getCustomerId()));
+    public ResponseEntity<ReviewResponse> createReview(
+            @Valid @RequestBody ReviewRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(reviewService.createReview(request, callerId));
     }
 
     /** Səhifələnmişdir: ?page=0&size=20, cavab PageResponse ("content" içində). */
@@ -39,7 +42,10 @@ public class ReviewController {
 
     /** Usta öz rəyinə ictimai cavab yazır/redaktə edir. */
     @PatchMapping("/{id}/reply")
-    public ResponseEntity<ReviewResponse> replyToReview(@PathVariable Long id, @Valid @RequestBody ReviewReplyRequest request) {
-        return ResponseEntity.ok(reviewService.addReply(id, request));
+    public ResponseEntity<ReviewResponse> replyToReview(
+            @PathVariable Long id,
+            @Valid @RequestBody ReviewReplyRequest request,
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
+        return ResponseEntity.ok(reviewService.addReply(id, request, callerId));
     }
 }

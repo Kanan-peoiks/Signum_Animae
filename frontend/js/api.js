@@ -204,9 +204,9 @@ const Api = {
     add:          (payload) => POST('/api/v1/availability', payload),
     forArtist:    (artistId) => GET('/api/v1/availability/artist/' + artistId),
     publicSlots:  (artistId) => GET('/api/v1/availability/artist/' + artistId + '/public'),
-    setBooked:    (id, artistId, booked) =>
-                  PATCH('/api/v1/availability/' + id + '/booked?artistId=' + artistId + '&booked=' + booked),
-    remove:       (id, artistId) => DELETE('/api/v1/availability/' + id + '?artistId=' + artistId)
+    // Sahiblik artıq X-User-Id başlığından yoxlanılır - artistId göndərməyə ehtiyac yoxdur.
+    setBooked:    (id, booked) => PATCH('/api/v1/availability/' + id + '/booked?booked=' + booked),
+    remove:       (id) => DELETE('/api/v1/availability/' + id)
   },
 
   /* ---- booking-service: rəylər ---- */
@@ -254,9 +254,9 @@ const Api = {
   aiIdeas: {
     save:        (payload) => POST('/api/v1/ai-ideas', payload),
     forCustomer: (customerId) => GET('/api/v1/ai-ideas/customer/' + customerId),
-    link:        (id, customerId, bookingId) =>
-                 PATCH('/api/v1/ai-ideas/' + id + '/link?customerId=' + customerId + '&bookingId=' + bookingId),
-    remove:      (id, customerId) => DELETE('/api/v1/ai-ideas/' + id + '?customerId=' + customerId)
+    // Eyni səbəbdən burada da customerId göndərilmir.
+    link:        (id, bookingId) => PATCH('/api/v1/ai-ideas/' + id + '/link?bookingId=' + bookingId),
+    remove:      (id) => DELETE('/api/v1/ai-ideas/' + id)
   },
 
   /* ---- usta izləmə / favoritlər (auth-service) ---- */

@@ -21,12 +21,14 @@ public class AvailabilityService {
 
     private final AvailabilitySlotRepository availabilitySlotRepository;
 
-    public AvailabilitySlotResponse addSlot(AvailabilitySlotRequest request) {
+    /** artistId doğrulanmış çağırandan götürülür - usta yalnız ÖZ təqviminə
+     *  pəncərə əlavə edə bilər. */
+    public AvailabilitySlotResponse addSlot(AvailabilitySlotRequest request, Long callerId) {
         if (!request.getSlotEnd().isAfter(request.getSlotStart())) {
             throw new IllegalArgumentException("Bitmə vaxtı başlanğıcdan sonra olmalıdır.");
         }
         AvailabilitySlot slot = AvailabilitySlot.builder()
-                .artistId(request.getArtistId())
+                .artistId(callerId)
                 .slotStart(request.getSlotStart())
                 .slotEnd(request.getSlotEnd())
                 .build();

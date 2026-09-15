@@ -10,6 +10,7 @@ import com.example.bookingservice.exception.BookingNotFoundException;
 import com.example.bookingservice.model.Booking;
 import com.example.bookingservice.model.BookingStatus;
 import com.example.bookingservice.repository.BookingRepository;
+import com.example.bookingservice.security.AccessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -46,9 +47,20 @@ public class BookingService {
         return mapToResponse(saved);
     }
 
+    /** Servislərarası istifadə üçün (chat-service Feign ilə çağırır) - burada son
+     *  istifadəçi yoxdur, ona görə sahiblik yoxlaması da yoxdur. İstifadəçi axını
+     *  {@link #getBookingByIdForCaller} üzərindən gedir. */
     public BookingResponse getBookingById(Long id) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Bron tapılmadı! ID: " + id));
+        return mapToResponse(findOrThrow(id));
+    }
+
+    /** Bronun qeydləri və qiyməti yalnız iki tərəfə aiddir - kənar istifadəçi
+     *  görməməlidir. ("Keçmiş tatuajlar" siyahısı bunun üçün deyil, ayrıca və
+     *  qəsdən ictimai olan completed-summary endpoint-i var.) */
+    public BookingResponse getBookingByIdForCaller(Long id, Long callerId) {
+        Booking booking = findOrThrow(id);
+        AccessGuard.requireOneOf(callerId, booking.getCustomerId(), booking.getArtistId(),
+                "Bu sifariş sizə aid deyil.");
         return mapToResponse(booking);
     }
 
@@ -91,9 +103,13 @@ public class BookingService {
                 .build();
     }
 
-    public BookingResponse updateBookingStatus(Long id, BookingStatus newStatus) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Bron tapılmadı! ID: " + id));
+    /** Statusu yalnız bronun iki tərəfi dəyişə bilər (müştəri ləğv edir, usta
+     *  təsdiqləyir/tamamlayır) - hansının hansını edə biləcəyi ayrıca məsələdir,
+     *  burada ən azı kənar şəxsin toxunmaması təmin olunur. */
+    public BookingResponse updateBookingStatus(Long id, BookingStatus newStatus, Long callerId) {
+        Booking booking = findOrThrow(id);
+        AccessGuard.requireOneOf(callerId, booking.getCustomerId(), booking.getArtistId(),
+                "Bu sifariş sizə aid deyil.");
 
         booking.setStatus(newStatus);
         Booking updated = bookingRepository.save(booking);
@@ -107,10 +123,14 @@ public class BookingService {
      * instead of just being decorative chat text.
      */
     public void updateEstimatedPrice(Long id, Double newPrice) {
-        Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Bron tapılmadı! ID: " + id));
+        Booking booking = findOrThrow(id);
         booking.setEstimatedPrice(newPrice);
         bookingRepository.save(booking);
+    }
+
+    private Booking findOrThrow(Long id) {
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new BookingNotFoundException("Bron tapılmadı! ID: " + id));
     }
 
     /**
