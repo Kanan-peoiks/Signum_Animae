@@ -36,7 +36,5 @@ services:
   notification-service:
     url: http://localhost:8085
 
-# Şifrə sıfırlama / email təsdiqi linkləri bu ünvana işarə edir.
-# Frontend README-dəki kimi lokalda sadə static server: python -m http.server 5500
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5500}

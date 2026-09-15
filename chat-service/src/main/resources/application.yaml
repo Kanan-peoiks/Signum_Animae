@@ -26,9 +26,6 @@ spring:
       host: localhost
       port: 6379
 
-# WebSocket handshake-ini yoxlamaq üçün - gateway WS upgrade-ini proxy edə bilmədiyi
-# üçün klient birbaşa buraya qoşulur, bax PresenceHandshakeInterceptor.
-# Gateway və auth-service ilə EYNİ secret olmalıdır.
 jwt:
   secret: ${JWT_SECRET}
 

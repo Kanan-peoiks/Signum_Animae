@@ -29,8 +29,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-session-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    // notification-service-ə birbaşa (gateway-i keçmədən) çağırış üçün -
-    // booking-service-dəki AuthServiceClient quruluşu ilə eyni.
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'io.github.openfeign:feign-hc5'
     compileOnly 'org.projectlombok:lombok'
