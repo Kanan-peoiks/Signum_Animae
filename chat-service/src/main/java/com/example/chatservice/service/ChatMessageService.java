@@ -135,8 +135,9 @@ public class ChatMessageService {
     /** Usta analitika paneli üçün - bu ustanın göndərdiyi bütün OFFER-lərin
      *  qəbul/rədd nisbəti. Sırf oxu, mövcud heç bir axını dəyişmir. */
     public OfferStatsResponse getOfferStatsForArtist(Long artistId) {
-        List<Long> roomIds = chatRoomService.getRoomsForArtist(artistId).stream()
-                .map(r -> r.getId())
+        // İcazə yoxlaması kontrollerdə edilir (yalnız ustanın özü) - burada xam siyahı lazımdır.
+        List<Long> roomIds = chatRoomService.findRoomsWhereArtist(artistId).stream()
+                .map(ChatRoom::getId)
                 .collect(Collectors.toList());
 
         if (roomIds.isEmpty()) {
@@ -193,8 +194,7 @@ public class ChatMessageService {
      * görə iştirakçı deyil. Belədə "başlıq gəlməyib" halında açıq qalmırıq.
      */
     private void requireParticipant(ChatRoom room, Long callerId) {
-        if (callerId == null
-                || (!callerId.equals(room.getCustomerId()) && !callerId.equals(room.getArtistId()))) {
+        if (!room.isParticipant(callerId)) {
             throw new NotRoomParticipantException(
                     "Bu söhbət sizə aid deyil, burada əməliyyat apara bilməzsiniz.");
         }

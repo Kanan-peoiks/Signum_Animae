@@ -34,4 +34,16 @@ public class ChatRoom {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    /**
+     * Bir otağın YALNIZ iki iştirakçısı var. Yoxlama modelin üzərindədir ki, həm
+     * ChatMessageService, həm ChatRoomService eyni qaydadan istifadə etsin və qayda
+     * iki yerdə ayrı-ayrı yazılmasın.
+     *
+     * null "iştirakçı deyil" sayılır: kimliyi məlum olmayan çağıran (məsələn gateway-in
+     * X-User-Id başlığı gəlməyibsə) heç nəyə icazə almamalıdır.
+     */
+    public boolean isParticipant(Long userId) {
+        return userId != null && (userId.equals(customerId) || userId.equals(artistId));
+    }
 }

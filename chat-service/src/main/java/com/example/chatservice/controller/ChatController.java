@@ -1,5 +1,6 @@
 package com.example.chatservice.controller;
 
+import com.example.chatservice.config.GatewayHeaders;
 import com.example.chatservice.dto.ChatMessageRequest;
 import com.example.chatservice.dto.OfferResponseRequest;
 import com.example.chatservice.dto.ChatMessageResponse;
@@ -37,16 +38,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatController {
 
-    /** Gateway-in doğruladığı istifadəçi id-si - bax JwtAuthenticationFilter. */
-    private static final String CALLER_HEADER = "X-User-Id";
-
     private final ChatMessageService chatMessageService;
 
     @PostMapping
     public ResponseEntity<ChatMessageResponse> sendMessage(
             @PathVariable Long roomId,
             @Valid @RequestBody ChatMessageRequest request,
-            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
         return ResponseEntity.ok(chatMessageService.saveMessage(roomId, request, callerId));
     }
 
@@ -63,7 +61,7 @@ public class ChatController {
             @PathVariable Long roomId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size,
-            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
 
         Sort newestFirst = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
         Page<ChatMessageResponse> newestPage =
@@ -79,7 +77,7 @@ public class ChatController {
     @PatchMapping("/read")
     public ResponseEntity<Void> markAsRead(
             @PathVariable Long roomId,
-            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
         chatMessageService.markAsRead(roomId, callerId);
         return ResponseEntity.ok().build();
     }
@@ -95,7 +93,7 @@ public class ChatController {
             @PathVariable Long roomId,
             @PathVariable Long messageId,
             @Valid @RequestBody OfferResponseRequest request,
-            @RequestHeader(value = CALLER_HEADER, required = false) Long callerId) {
+            @RequestHeader(value = GatewayHeaders.USER_ID, required = false) Long callerId) {
         return ResponseEntity.ok(chatMessageService.respondToOffer(roomId, messageId, request.isAccept(), callerId));
     }
 }
