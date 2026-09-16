@@ -10,7 +10,7 @@ spring:
         hc5:
           enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/signum_animae_notificationservice
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:signum_animae_notificationservice}
     username: ${Username}
     password: ${Password}
   jpa:
@@ -18,8 +18,8 @@ spring:
       ddl-auto: update
     show-sql: true
   mail:
-    host: smtp.gmail.com
-    port: 587
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
@@ -31,7 +31,7 @@ spring:
 
 services:
   auth-service:
-    url: http://localhost:8081
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
 
 internal:
   service-token: ${INTERNAL_SERVICE_TOKEN:local-dev-internal-token}

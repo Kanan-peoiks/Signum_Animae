@@ -2,10 +2,11 @@
    api.js — backend ilə bütün əlaqə burada cəmlənib.
    ============================================================ */
 
-const API_BASE = 'http://localhost:8080';
+const CFG = window.SIGNUM_CONFIG || {};
+const API_BASE = CFG.apiBase || 'http://localhost:8080';
 const PAGE_SIZE = 12;
 const CHAT_PAGE_SIZE = 30;
-const WS_URL   = 'ws://localhost:8083/ws-tattoo';
+const WS_URL   = CFG.wsUrl || 'ws://localhost:8083/ws-tattoo';
 
 const SESSION_KEY = 'signum.session';
 

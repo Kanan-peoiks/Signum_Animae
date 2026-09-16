@@ -10,7 +10,7 @@ spring:
         hc5:
           enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5432/signum_animae_bookingservice
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:signum_animae_bookingservice}
     username: ${Username}
     password: ${Password}
     driver-class-name: org.postgresql.Driver
@@ -24,9 +24,9 @@ spring:
 
 services:
   auth-service:
-    url: http://localhost:8081
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
   notification-service:
-    url: http://localhost:8085
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
 
 internal:
   service-token: ${INTERNAL_SERVICE_TOKEN:local-dev-internal-token}
