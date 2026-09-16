@@ -11,8 +11,6 @@ public class ReviewRequest {
     @NotNull(message = "bookingId tələb olunur")
     private Long bookingId;
 
-    private Long customerId;
-
     @NotNull(message = "Reytinq tələb olunur")
     @Min(value = 1, message = "Reytinq 1 ilə 5 arasında olmalıdır")
     @Max(value = 5, message = "Reytinq 1 ilə 5 arasında olmalıdır")

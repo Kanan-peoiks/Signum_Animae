@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 
 @Data
 public class BookingRequest {
-    private Long customerId;
-
     @NotNull(message = "artistId tələb olunur")
     private Long artistId;
 

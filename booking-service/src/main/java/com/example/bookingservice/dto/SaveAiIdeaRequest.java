@@ -7,9 +7,6 @@ import lombok.Data;
 
 @Data
 public class SaveAiIdeaRequest {
-    @NotNull(message = "customerId tələb olunur")
-    private Long customerId;
-
     @NotBlank(message = "prompt boş ola bilməz")
     @Size(max = 2000, message = "prompt 2000 simvoldan uzun ola bilməz")
     private String prompt;

@@ -494,7 +494,6 @@ const App = {
           const done = withBusy(okBtn, 'Göndərilir');
           try {
             await Api.bookings.create({
-              customerId: Session.userId,
               artistId: artist.userId,
               bookingDate: dateVal.length === 16 ? dateVal + ':00' : dateVal,
               notes: $('#bNotes', ov).value.trim(),
@@ -714,7 +713,6 @@ const App = {
           try {
             await Api.reviews.create({
               bookingId,
-              customerId: Session.userId,
               rating: picked,
               comment: $('#rComment', ov).value.trim()
             });
@@ -791,7 +789,7 @@ const App = {
               if (!text) { toastErr('Cavab boş ola bilməz.'); return; }
               const done = withBusy(okBtn, 'Göndərilir');
               try {
-                await Api.reviews.reply(reviewId, { artistId: Session.userId, reply: text });
+                await Api.reviews.reply(reviewId, { reply: text });
                 close();
                 toastOk('Cavab əlavə edildi.');
                 this.pageReviews(host);
@@ -915,7 +913,6 @@ const App = {
       const done = withBusy($('#addSlotBtn'), 'Əlavə edilir');
       try {
         await Api.availability.add({
-          artistId: Session.userId,
           slotStart: startVal.length === 16 ? startVal + ':00' : startVal,
           slotEnd: endVal.length === 16 ? endVal + ':00' : endVal
         });
@@ -1052,7 +1049,6 @@ const App = {
     const done = withBusy(btn, 'Saxlanır');
     try {
       await Api.aiIdeas.save({
-        customerId: Session.userId,
         prompt: promptText,
         style: styleText || null,
         aiRecommendation: recommendation

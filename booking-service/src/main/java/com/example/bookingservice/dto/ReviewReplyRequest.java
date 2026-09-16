@@ -7,9 +7,6 @@ import lombok.Data;
 
 @Data
 public class ReviewReplyRequest {
-    @NotNull(message = "artistId tələb olunur")
-    private Long artistId;
-
     @NotBlank(message = "Cavab mətni boş ola bilməz")
     @Size(max = 1000, message = "Cavab 1000 simvoldan uzun ola bilməz")
     private String reply;

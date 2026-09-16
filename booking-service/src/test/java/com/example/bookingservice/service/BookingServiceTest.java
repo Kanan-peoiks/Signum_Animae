@@ -1,6 +1,7 @@
 package com.example.bookingservice.service;
 
 import com.example.bookingservice.client.AuthServiceClient;
+import com.example.bookingservice.client.NotificationServiceClient;
 import com.example.bookingservice.client.dto.InternalUserSummaryDto;
 import com.example.bookingservice.dto.BookingRequest;
 import com.example.bookingservice.dto.BookingResponse;
@@ -30,13 +31,14 @@ class BookingServiceTest {
     private BookingRepository bookingRepository;
     @Mock
     private AuthServiceClient authServiceClient;
+    @Mock
+    private NotificationServiceClient notificationServiceClient;
     @InjectMocks
     private BookingService bookingService;
 
     @Test
-    void createBooking_usesCallerIdAsCustomerId_ignoringRequestBody() {
+    void createBooking_takesCustomerIdFromTheVerifiedCaller() {
         BookingRequest request = new BookingRequest();
-        request.setCustomerId(999L);
         request.setArtistId(5L);
         request.setBookingDate(LocalDateTime.now().plusDays(1));
 
