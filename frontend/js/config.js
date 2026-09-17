@@ -2,16 +2,14 @@
    config.js — mühitə görə dəyişən yeganə fayl.
    ============================================================ */
 
-/* Deploy edərkən YALNIZ bu faylı əvəz etmək kifayətdir - qalan JS-ə
-   toxunmaq lazım deyil.
+/* Deploy edərkən YALNIZ bu faylı əvəz etmək kifayətdir.
 
-   Lokalda: aşağıdakı dəyərlər olduğu kimi qalır.
-   Produksiyada: https:// və wss:// olmalıdır, əks halda brauzer qarışıq
-   məzmun (mixed content) səbəbindən sorğuları bloklayacaq.
+   https və wss məcburidir - brauzer HTTPS səhifədən http/ws sorğusunu
+   bloklayır (mixed content).
 
    wsUrl birbaşa chat-service-ə gedir, gateway-ə YOX - gateway WebSocket
    "upgrade" əməliyyatını proxy edə bilmir. */
 window.SIGNUM_CONFIG = {
-  apiBase: 'http://localhost:8080',
-  wsUrl:   'ws://localhost:8083/ws-tattoo'
+  apiBase: 'https://gateway-service.blackpond-2fcca8ba.polandcentral.azurecontainerapps.io',
+  wsUrl:   'wss://chat-service.blackpond-2fcca8ba.polandcentral.azurecontainerapps.io/ws-tattoo'
 };
