@@ -99,6 +99,7 @@ services:
       MAIL_PORT: ${MAIL_PORT:-1025}
       MAIL_USERNAME: ${MAIL_USERNAME:-dummy}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-dummy}
+      MAIL_FROM: ${MAIL_FROM:-signum@localhost}
     depends_on:
       postgres: { condition: service_healthy }
 

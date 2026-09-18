@@ -8,6 +8,7 @@ import com.example.notificationservice.repo.NotificationRepository;
 import com.example.notificationservice.security.AccessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mail.SimpleMailMessage;
@@ -25,6 +26,9 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final JavaMailSender mailSender;
     private final AuthServiceClient authServiceClient;
+
+    @Value("${app.mail.from}")
+    private String mailFrom;
 
     public Notification sendNotification(NotificationRequest request) {
         String resolvedEmail = resolveEmail(request.getUserId());
@@ -79,6 +83,7 @@ public class NotificationService {
     private void sendEmail(String to, String subject, String body) {
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
+            mailMessage.setFrom(mailFrom);
             mailMessage.setTo(to);
             mailMessage.setSubject(subject);
             mailMessage.setText(body);
