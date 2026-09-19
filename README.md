@@ -37,7 +37,7 @@ The live demo is seeded with artists, bookings, reviews and conversations:
 
 | Role | Email | Password |
 |---|---|---|
-| Customer | `musteri@signumdemo.local` | `musteri12345` |
+| Customer | `musteri@signumdemo.local` | `Demo12345` |
 | Artist | `usta@signumdemo.local` | `usta12345` |
 
 There is a third role, **admin**, whose credentials are not published here. The admin panel gives a platform-wide view — user counts by role, banned accounts, sign-ups over the last 7 and 30 days, the busiest cities, booking totals, the average rating across the platform and estimated revenue — and it is also where users get banned or unbanned and where reviews are moderated (an admin can delete any review). Happy to walk through it on request.
