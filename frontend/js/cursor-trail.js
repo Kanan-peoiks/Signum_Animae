@@ -3,6 +3,8 @@
    Nöqtələr zəncir kimi bir-birinin arxasınca yay (spring) qanunu ilə
    çəkilir; xətt quyruğa doğru nazikləşir. Siçan dayananda zəncir
    uca yığılıb yox olur və animasiya dövrü dayanır (boş yerə CPU yemir).
+   Yalnız açılış, giriş və qeydiyyat ekranında işləyir — tətbiqin içində
+   (usta axtarışı, söhbət, profil) iz çəkilmir və canvas gizlənir.
    Toxunma ekranlarında və "hərəkəti azalt" seçimində işə düşmür.
    ============================================================ */
 (function () {
@@ -38,6 +40,13 @@
     trail = Array.from({ length: POINTS }, () => ({ x, y, dx: 0, dy: 0 }));
   }
 
+  /* Yalnız giriş ekranında: tətbiq qabığı (#appShell) görünəndə iz yoxdur.
+     Açılış ekranı da qabıq gizli olduğu üçün buraya düşür. */
+  function onAuthScreen() {
+    const shell = document.getElementById('appShell');
+    return !shell || shell.classList.contains('is-hidden');
+  }
+
   function start() {
     if (!running) { running = true; requestAnimationFrame(frame); }
   }
@@ -58,7 +67,7 @@
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
     // Zəncir uca yığılıbsa (siçan dayanıb) - heç nə çəkmə və dövrü saxla
-    if (!visible || spread < POINTS * 0.6) { running = false; return; }
+    if (!visible || !onAuthScreen() || spread < POINTS * 0.6) { running = false; return; }
 
     ctx.strokeStyle = COLOR;
     ctx.lineCap = 'round';
@@ -78,6 +87,7 @@
   }
 
   window.addEventListener('mousemove', (e) => {
+    if (!onAuthScreen()) return;
     pointer.x = e.clientX;
     pointer.y = e.clientY;
     if (!visible) { visible = true; reset(pointer.x, pointer.y); }
@@ -87,6 +97,18 @@
   document.addEventListener('mouseleave', () => { visible = false; });
   window.addEventListener('blur', () => { visible = false; });
   window.addEventListener('resize', resize);
+
+  /* Giriş anında ekranda qalmış izi sil: animasiya dövrü elə həmin an
+     dayanmış ola bilər və son kadr tətbiqin üstündə donub qalardı. */
+  const shell = document.getElementById('appShell');
+  if (shell) {
+    new MutationObserver(() => {
+      if (!onAuthScreen()) {
+        visible = false;
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      }
+    }).observe(shell, { attributes: true, attributeFilter: ['class'] });
+  }
 
   resize();
   reset(pointer.x, pointer.y);

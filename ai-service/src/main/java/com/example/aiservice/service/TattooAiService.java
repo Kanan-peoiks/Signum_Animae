@@ -23,8 +23,12 @@ public class TattooAiService {
     @Value("${gemini.api.model:gemini-flash-latest}")
     private String model;
 
+    /* maxOutputTokens açıq yazılıb: default limit modeldən-modelə dəyişir və
+       strukturlaşdırılmış məsləhət ortasında kəsilə bilir. 4096 token bütün
+       beş bölmə üçün bol yerdir. */
     private static final Map<String, Object> GENERATION_CONFIG = Map.of(
-            "thinkingConfig", Map.of("thinkingBudget", 0)
+            "thinkingConfig", Map.of("thinkingBudget", 0),
+            "maxOutputTokens", 4096
     );
 
     private final WebClient webClient;
@@ -148,8 +152,21 @@ public class TattooAiService {
                 JsonNode candidates = objectMapper.readTree(responseJson).path("candidates");
 
                 if (candidates.isArray() && candidates.size() > 0) {
-                    String aiText = candidates.get(0)
-                            .path("content").path("parts").get(0).path("text").asText();
+                    JsonNode candidate = candidates.get(0);
+                    String aiText = joinParts(candidate.path("content").path("parts"));
+
+                    if (aiText.isBlank()) {
+                        return TattooIdeaResponse.builder()
+                                .aiRecommendation("Analiz baş tutmadı: model boş cavab qaytardı. "
+                                        + "Ideyanı bir az başqa cür yaz və yenidən yoxla.")
+                                .build();
+                    }
+                    // Cavab limitə dəyib yarımçıq qalıbsa, istifadəçi cümlə ortasında
+                    // kəsilmiş mətnin səbəbini bilsin
+                    if ("MAX_TOKENS".equals(candidate.path("finishReason").asText())) {
+                        aiText += "\n\n[Cavab uzunluq limitinə çatdığı üçün yarımçıq kəsildi — "
+                                + "ideyanı daha qısa yazsan, tam məsləhət alacaqsan.]";
+                    }
                     return TattooIdeaResponse.builder().aiRecommendation(aiText).build();
                 }
                 return TattooIdeaResponse.builder()
@@ -172,6 +189,22 @@ public class TattooAiService {
         return TattooIdeaResponse.builder()
                 .aiRecommendation(describeFailure(lastError))
                 .build();
+    }
+
+    /* Gemini cavabı bir neçə "part"a bölə bilir. Əvvəllər yalnız birincisi
+       oxunurdu, ona görə məsləhət bəzən cümlə ortasında bitirdi. */
+    private String joinParts(JsonNode parts) {
+        if (!parts.isArray()) {
+            return "";
+        }
+        StringBuilder text = new StringBuilder();
+        for (JsonNode part : parts) {
+            if (part.path("thought").asBoolean(false)) {
+                continue;   // modelin daxili düşüncə hissəsi - istifadəçiyə göstərilmir
+            }
+            text.append(part.path("text").asText(""));
+        }
+        return text.toString().trim();
     }
 
     private boolean isRetryable(int status) {

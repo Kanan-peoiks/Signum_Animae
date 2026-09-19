@@ -190,7 +190,7 @@ const App = {
     host.innerHTML =
       pageHead('Ustanı tap', 'Şəhər, stil və reytinqə görə süz') +
       '<div class="filters">' +
-        '<label class="field"><span>Şəhər</span><input type="text" id="fCity" placeholder="Bakı"></label>' +
+        '<label class="field"><span>Şəhər</span>' + citySelect('fCity') + '</label>' +
         '<label class="field"><span>Stil</span><input type="text" id="fStyle" placeholder="Realism"></label>' +
         '<label class="field"><span>Minimum reytinq</span>' +
           '<select id="fRating">' +
@@ -217,8 +217,8 @@ const App = {
       '<div id="resultsBox">' + spinner() + '</div>';
 
     $('#searchBtn').addEventListener('click', () => this.runSearch());
-    ['fCity', 'fStyle'].forEach(id =>
-      $('#' + id).addEventListener('keydown', e => { if (e.key === 'Enter') this.runSearch(); }));
+    $('#fStyle').addEventListener('keydown', e => { if (e.key === 'Enter') this.runSearch(); });
+    $('#fCity').addEventListener('change', () => this.runSearch());
     $('#fRating').addEventListener('change', () => this.runSearch());
     $('#fExperience').addEventListener('change', () => this.runSearch());
     $('#fSort').addEventListener('change', () => this.runSearch());
@@ -1085,7 +1085,7 @@ const App = {
               (idea.bookingId ? ' · Bağlı sifariş: #' + esc(idea.bookingId) : '') + '</div>' +
             '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">' +
               (!idea.bookingId
-                ? '<button class="btn btn-ghost btn-sm link-idea" data-id="' + idea.id + '">Sifarişə bağla</button>'
+                ? '<button class="btn btn-ghost btn-sm link-idea" data-id="' + idea.id + '">Sifarişlə əlaqələndir</button>'
                 : '') +
               '<button class="btn btn-ghost btn-sm delete-idea" data-id="' + idea.id + '">Sil</button>' +
             '</div>' +
@@ -1115,22 +1115,24 @@ const App = {
 
     if (!bookings.length) { toastErr('Hələ heç bir sifarişin yoxdur.'); return; }
 
-    openModal('Sifarişə bağla',
-      '<label class="field"><span>Hansı sifarişə bağlansın?</span>' +
+    openModal('Sifarişlə əlaqələndir',
+      '<label class="field"><span>Hansı sifarişlə əlaqələndirilsin?</span>' +
         '<select id="linkBookingSelect">' +
           bookings.map(b =>
             '<option value="' + b.id + '">#' + b.id + ' — ' + esc(fmtDay(b.bookingDate)) +
               ' (' + esc(STATUS_AZ[b.status] || b.status) + ')</option>').join('') +
         '</select></label>',
       {
-        okText: 'Bağla',
+        // "Bağla" iki mənaya gəlirdi: pəncərəni bağla / sifarişə bağla
+        cancelText: 'İmtina',
+        okText: 'Əlaqələndir',
         onOk: async (ov, close, okBtn) => {
           const bookingId = Number($('#linkBookingSelect', ov).value);
-          const done = withBusy(okBtn, 'Bağlanır');
+          const done = withBusy(okBtn, 'Əlaqələndirilir');
           try {
             await Api.aiIdeas.link(ideaId, bookingId);
             close();
-            toastOk('Sifarişə bağlandı.');
+            toastOk('Sifarişlə əlaqələndirildi.');
             this.loadAiHistory(host);
           } catch (err) {
             toastErr(err.message);
@@ -1249,9 +1251,6 @@ const App = {
             '<input type="text" id="pName" value="' + esc(user.fullName || '') + '"></label>' +
           '<label class="field" style="margin-top:13px"><span>Şəhər</span>' +
             '<input type="text" id="pCity" value="' + esc(user.city || '') + '"></label>' +
-          '<label class="field" style="margin-top:13px"><span>Profil şəkli linki</span>' +
-            '<input type="text" id="pAvatar" value="' + esc(user.profileImageUrl || '') +
-              '" placeholder="https://…"></label>' +
           '<button class="btn btn-primary btn-block" style="margin-top:16px" id="saveUserBtn">Hesabı yenilə</button>' +
         '</div>' +
 
@@ -1304,8 +1303,7 @@ const App = {
       try {
         const updated = await Api.users.update(Session.userId, {
           fullName: $('#pName').value.trim(),
-          city: $('#pCity').value.trim(),
-          profileImageUrl: $('#pAvatar').value.trim()
+          city: $('#pCity').value.trim()
         });
         Session.patch({ fullName: updated.fullName, city: updated.city });
         $('#whoName').textContent = updated.fullName;
