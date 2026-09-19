@@ -8,8 +8,9 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
 
@@ -22,7 +23,7 @@
     <div class="sigil-wrap">
       <img class="sigil sigil-spin" src="assets/ouroboros-splash.png" alt="" aria-hidden="true">
     </div>
-    <h1 class="splash-word" id="splashWord" aria-label="Signum Animae"></h1>
+    <h1 class="splash-word" id="splashWord" lang="en" aria-label="Signum Animae"></h1>
     <div class="splash-rule"><span></span></div>
     <p class="splash-sub">Ruhun izi — tatuirovka sənəti platforması</p>
   </div>
@@ -32,7 +33,7 @@
 <div id="authScreen" class="auth-screen is-hidden">
   <div class="auth-aside">
     <img class="sigil sigil-sm" src="assets/ouroboros-mark.png" alt="" aria-hidden="true">
-    <h2 class="aside-word">Signum<br>Animae</h2>
+    <h2 class="aside-word" lang="en">Signum<br>Animae</h2>
     <div class="aside-rule"></div>
     <p class="aside-text">
       Dərinin altında qalan bir iz — sadəcə mürəkkəb deyil, seçim.
@@ -106,6 +107,11 @@
         <button type="submit" class="btn btn-primary btn-block">Hesab yarat</button>
       </form>
     </div>
+    <div class="auth-gallery" aria-hidden="true">
+      <img src="assets/photos/machine.webp" alt="" loading="lazy">
+      <img src="assets/photos/artist-portrait.webp" alt="" loading="lazy">
+      <img src="assets/photos/studio-room.webp" alt="" loading="lazy">
+    </div>
   </div>
 </div>
 
@@ -114,7 +120,7 @@
   <header class="topbar">
     <div class="brand">
       <img class="sigil sigil-xs" src="assets/ouroboros-mark.png" alt="" aria-hidden="true">
-      <span class="brand-word">Signum Animae</span>
+      <span class="brand-word" lang="en">Signum Animae</span>
     </div>
     <div class="topbar-right">
       <button class="icon-btn" id="navToggle" aria-label="Menyu">☰</button>
@@ -138,9 +144,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
+<script src="js/photos.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/app.js"></script>
+<script src="js/cursor-trail.js"></script>
 </body>
 </html>

@@ -140,12 +140,24 @@ const statusBadge = (s) =>
 const spinner = () => '<div class="spinner"></div>';
 
 function emptyState(text, mark = '✵') {
-  return '<div class="empty"><div class="empty-mark">' + mark + '</div><p>' + esc(text) + '</p></div>';
+  // "!" xəta mesajıdır - orada foto yersiz olar, işarə qalır
+  if (mark === '!') {
+    return '<div class="empty"><div class="empty-mark">' + mark + '</div><p>' + esc(text) + '</p></div>';
+  }
+  // Kölgə ayrıca qabdadır: şəkildəki grayscale filtri kölgəni də boz edərdi
+  return '<div class="empty">' +
+    '<span class="empty-photo"><img src="' + PHOTO_DIR + EMPTY_PHOTO + '" alt="" aria-hidden="true"></span>' +
+    '<p>' + esc(text) + '</p></div>';
 }
 
+// Cari səhifənin PAGE_PHOTOS-da fotosu varsa başlıq foto banner olur (photos.js)
 function pageHead(title, subtitle) {
-  return '<div class="page-head"><h1 class="page-title">' + esc(title) + '</h1>' +
-         (subtitle ? '<p class="page-sub">' + esc(subtitle) + '</p>' : '') + '</div>';
+  const photo = PAGE_PHOTOS[App.route];
+  const inner = '<h1 class="page-title">' + esc(title) + '</h1>' +
+                (subtitle ? '<p class="page-sub">' + esc(subtitle) + '</p>' : '');
+  if (!photo) return '<div class="page-head">' + inner + '</div>';
+  return '<div class="page-head has-photo' + (photo.slim ? ' slim' : '') + '" ' +
+         'style="' + photoStyle(photo) + '">' + inner + '</div>';
 }
 
 function styleChips(styles) {

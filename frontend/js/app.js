@@ -404,6 +404,7 @@ const App = {
 
     host.innerHTML =
       '<button class="btn btn-ghost btn-sm" id="backBtn" style="margin-bottom:20px">‹ Geri</button>' +
+      artistCover(artistUserId) +
       '<div class="card card-pad">' +
         '<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">' +
           '<span class="avatar avatar-lg">' + esc(initials(artist.fullName)) + '</span>' +
@@ -957,6 +958,7 @@ const App = {
   pageAi(host) {
     host.innerHTML =
       pageHead('AI Studiya', 'Konsept məsləhəti al və ya eskizini analiz etdir') +
+      inspoStrip() +
       '<div class="grid grid-2">' +
         '<div class="card card-pad">' +
           '<div class="section-title" style="margin-top:0">İdeya məsləhəti</div>' +

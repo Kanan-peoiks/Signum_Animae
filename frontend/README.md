@@ -7,14 +7,23 @@ Saf HTML/CSS/JavaScript. Build, npm və ya framework tələb olunmur.
 ```
 frontend/
 ├── index.html        açılış ekranı + giriş/qeydiyyat + tətbiq qabığı
-├── css/style.css     bütün dizayn (tünd qara + tüstülü bənövşəyi palitra)
+├── css/
+│   ├── style.css     əsas dizayn: layout, komponentlər, animasiyalar
+│   └── theme.css     açıq "studio" teması — style.css-in üstünə yüklənir
+│                     (açıq boz fon, Archivo, firuzəyi vurğu, qara-ağ fotolar)
+├── assets/photos/    banner və qalereya fotoları (webp)
 └── js/
     ├── api.js        backend ilə bütün əlaqə + sessiya/token idarəsi
+    ├── photos.js     hansı səhifədə hansı foto görünür (banner, örtük, ilham)
     ├── ui.js         köməkçilər (təhlükəsiz HTML, toast, modal, tarix formatı)
     ├── auth.js       açılış animasiyası, giriş və qeydiyyat
     ├── chat.js       canlı söhbət (STOMP/WebSocket) + söhbət səhifəsi
-    └── app.js        naviqasiya və bütün səhifələr
+    ├── app.js        naviqasiya və bütün səhifələr
+    └── cursor-trail.js  siçanın arxasınca gedən mürəkkəb xətti
 ```
+
+Köhnə tünd bənövşəyi temaya qayıtmaq üçün `index.html`-dən `theme.css`
+linkini silmək kifayətdir.
 
 ## İşə salmaq
 
