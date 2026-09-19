@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://signumanimae.blackpond-2fcca8ba.polandcentral.azurecontainerapps.io"><b>▶ Live demo</b></a>
+  <a href="https://signumanimae.kananpeoiks.me"><b>▶ Live demo</b></a>
 </p>
 
 <p align="center">
@@ -228,9 +228,7 @@ cd auth-service && ./gradlew test    # and likewise for the other services
 Honest notes on where the project stops, as a student project built under real time constraints:
 
 - **The shared internal-service token is only enforced in one place.** Services send `X-Internal-Token` on server-to-server calls, but only `notification-service` actually verifies it (on `/send`, which can otherwise be used to email arbitrary users). The other `/internal/` endpoints rely on network isolation instead — they have no public ingress in the cloud deployment.
-- **Email runs through Gmail SMTP**, which caps out around 500 messages a day and sends from a personal address. A transactional provider on a verified domain would be the real answer.
 - **The AI Studio runs on Gemini's free tier**, which is rate-limited per minute and per day. Under load it answers with a "try again shortly" message rather than failing silently.
-- **No custom domain yet** — the deployment uses the hostnames Azure generates.
 - **`ddl-auto: update`** manages the schema. That is fine for this project's scale, but a real migration tool (Flyway/Liquibase) is what you would want before a schema change on live data.
 
 ## Roadmap
@@ -244,9 +242,10 @@ Honest notes on where the project stops, as a student project built under real t
 - [x] Docker & Docker Compose support
 - [x] Cloud deployment (Azure Container Apps)
 - [ ] Enforce the internal-service token in every service
-- [ ] Transactional email on a verified domain
+- [x] Transactional email on a verified domain (Resend)
 - [ ] Database migrations (Flyway)
-- [ ] Custom domain & CI/CD pipeline
+- [x] Custom domain
+- [ ] CI/CD pipeline
 
 ---
 

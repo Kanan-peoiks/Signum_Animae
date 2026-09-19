@@ -1,7 +1,7 @@
 # SIGNUM ANIMAE — deploy
 
 Hədəf quruluş: **Azure Container Apps** (6 servis + Redis), **bir PostgreSQL Flexible
-Server** (içində 4 baza), **Static Web Apps** (frontend), email üçün **Gmail SMTP**.
+Server** (içində 4 baza), **Static Web Apps** (frontend), email üçün **Resend** (SMTP, `kananpeoiks.me` domeni).
 
 Ardıcıllıq vacibdir: əvvəlcə hər şeyi lokalda konteyner kimi işə sal. Azure-da xəta
 axtarmaq həm yavaş, həm bahalıdır.
@@ -112,7 +112,7 @@ az containerapp create \
     JWT_SECRET=secretref:jwt-secret \
     INTERNAL_SERVICE_TOKEN=secretref:internal-token \
     NOTIFICATION_SERVICE_URL=http://notification-service \
-    FRONTEND_URL=https://<frontend-domeni>
+    FRONTEND_URL=https://signumanimae.kananpeoiks.me
 ```
 
 Qalan üçü üçün eyni şablon — yalnız `--name`, `--image`, `--target-port`,
@@ -143,7 +143,7 @@ Gateway-in env dəyişənləri:
 
 ```
 JWT_SECRET=secretref:jwt-secret
-CORS_ALLOWED_ORIGINS=https://<frontend-domeni>
+CORS_ALLOWED_ORIGINS=https://signumanimae.kananpeoiks.me
 AUTH_SERVICE_URL=http://auth-service
 BOOKING_SERVICE_URL=http://booking-service
 CHAT_SERVICE_URL=http://chat-service
@@ -182,8 +182,9 @@ az staticwebapp create \
 
 1. **Qeydiyyat + giriş** — işləmirsə əvvəlcə gateway-in loguna bax
 2. **Söhbət** — WebSocket qoşulmursa `wsUrl`-də `wss://` olduğunu yoxla
-3. **Şifrə sıfırlama** — Azure bəzi planlarda gedən SMTP-ni bloklayır. Məktub
-   gəlmirsə, Gmail əvəzinə Azure Communication Services və ya SendGrid lazım olacaq
+3. **Şifrə sıfırlama** — məktub gəlmirsə notification-service loguna və Resend
+   panelindəki "Emails" siyahısına bax. `MAIL_FROM` Resend-də təsdiqlənmiş domendə
+   olmalıdır (`noreply@kananpeoiks.me`)
 4. **CORS** — brauzer konsolunda CORS xətası varsa `CORS_ALLOWED_ORIGINS` dəqiq
    frontend domenini göstərməlidir (`*` qoyma)
 
@@ -196,7 +197,7 @@ az staticwebapp create \
 | `JWT_SECRET` | Produksiya üçün **YENİSİNİ** yarat. Lokal dəyər aylarla açıq mətndə olub |
 | `INTERNAL_SERVICE_TOKEN` | Eyni — yeni və uzun dəyər |
 | Baza şifrəsi | Container Apps secret kimi saxla, env-ə açıq yazma |
-| Gmail app password | Eyni şəkildə secret |
+| Resend API açarı | Eyni şəkildə secret (`resend-key`) |
 | `.env` | Git-ə getmir, elə də qalsın |
 
 Bütün sirləri belə yarat:
@@ -215,6 +216,6 @@ az containerapp secret set --resource-group signum-rg --name <app> \
 | Container Apps (7 konteyner, sıfıra miqyaslanır) | pulsuz kvota daxilində ≈ $0–5 |
 | PostgreSQL Flexible B1ms | ≈ $13–18 (yeni hesabda ilk 12 ay pulsuz ola bilər) |
 | Static Web Apps | $0 |
-| Gmail | $0 |
+| Resend (pulsuz plan, 3000 məktub/ay) | $0 |
 
 Dəqiq rəqəm region və məzənnəyə görə dəyişir — Azure Pricing Calculator-da təsdiqlə.
