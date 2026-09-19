@@ -37,8 +37,10 @@ The live demo is seeded with artists, bookings, reviews and conversations:
 
 | Role | Email | Password |
 |---|---|---|
-| Customer | `musteri1@signumdemo.local` | `Demo12345` |
-| Artist | `usta1@signumdemo.local` | `Demo12345` |
+| Customer | `musteri@signumdemo.local` | `musteri12345` |
+| Artist | `usta@signumdemo.local` | `usta12345` |
+
+There is a third role, **admin**, whose credentials are not published here. The admin panel gives a platform-wide view — user counts by role, banned accounts, sign-ups over the last 7 and 30 days, the busiest cities, booking totals, the average rating across the platform and estimated revenue — and it is also where users get banned or unbanned and where reviews are moderated (an admin can delete any review). Happy to walk through it on request.
 
 > Everything is live, the AI Studio included — nothing is stubbed out or mocked.
 
@@ -137,6 +139,7 @@ The whole system rests on one rule: **a caller's identity is never taken from th
 - Every service reads the caller from `X-User-Id` and checks ownership before answering — you can only read your own bookings, notifications, chat rooms, saved AI ideas and follows, and only act on rows that belong to you. Deliberately public endpoints (an artist's reviews, their free slots, the "past tattoos" list on a profile) stay open.
 - `401` and `403` mean different things: 401 is "we don't know who you are" (the session ends), 403 is "we know, but you may not do this" (just an error message). Mixing them meant a single permission error used to log the user out.
 - `chat-service` is the one service that must stay publicly reachable, because the gateway cannot proxy a WebSocket upgrade. It therefore verifies the JWT itself: its `JwtHeaderFilter` strips any incoming `X-User-Id` and rewrites it from the token's subject, and the WebSocket handshake requires a valid `?token=` rather than trusting a `userId` query parameter.
+- Registration cannot hand out privileges: the public `/api/v1/auth/register` endpoint refuses the `ADMIN` role, so an admin account can only be created from inside the system.
 - In the cloud deployment only the frontend, the gateway and chat-service have public ingress. `auth`, `booking`, `notification`, `ai` and `redis` are internal-only.
 
 ## Services
