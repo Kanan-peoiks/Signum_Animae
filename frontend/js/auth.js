@@ -138,6 +138,13 @@ function initAuthTabs() {
 
 function initAuthForms() {
 
+  /* Şəhər sərbəst mətn olanda bazaya "AZ1001,Baku,Azerbaijan" kimi dəyərlər
+     düşürdü və belə ustalar şəhər filtrində heç vaxt tapılmırdı. */
+  $('#regCityField').innerHTML =
+    '<label class="field"><span>Şəhər</span>' +
+      citySelect('regCity', '', 'Şəhər seç', 'city') +
+    '</label>';
+
   $('#forgotLink').addEventListener('click', (e) => {
     e.preventDefault();
     openForgotPasswordModal();

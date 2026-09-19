@@ -31,10 +31,10 @@ const AZ_CITIES = [
 /* Şəhər seçimi üçün <select>. selected siyahıda yoxdursa (məsələn, usta
    profilində əl ilə yazılmış köhnə dəyər), o dəyər də əlavə olunur ki,
    seçim itməsin. */
-function citySelect(id, selected, emptyLabel = 'Bütün şəhərlər') {
+function citySelect(id, selected, emptyLabel = 'Bütün şəhərlər', name) {
   const value = (selected || '').trim();
   const list = (value && !AZ_CITIES.includes(value)) ? [value].concat(AZ_CITIES) : AZ_CITIES;
-  return '<select id="' + id + '">' +
+  return '<select id="' + id + '"' + (name ? ' name="' + name + '"' : '') + '>' +
     '<option value="">' + esc(emptyLabel) + '</option>' +
     list.map(c =>
       '<option value="' + esc(c) + '"' + (c === value ? ' selected' : '') + '>' + esc(c) + '</option>'

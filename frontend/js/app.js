@@ -1250,7 +1250,7 @@ const App = {
           '<label class="field"><span>Ad, soyad</span>' +
             '<input type="text" id="pName" value="' + esc(user.fullName || '') + '"></label>' +
           '<label class="field" style="margin-top:13px"><span>Şəhər</span>' +
-            '<input type="text" id="pCity" value="' + esc(user.city || '') + '"></label>' +
+            citySelect('pCity', user.city, 'Şəhər seçilməyib') + '</label>' +
           '<button class="btn btn-primary btn-block" style="margin-top:16px" id="saveUserBtn">Hesabı yenilə</button>' +
         '</div>' +
 
