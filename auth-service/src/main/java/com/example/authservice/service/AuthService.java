@@ -36,6 +36,12 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        /* Rol sorğudan gəlir və qeydiyyat endpoint-i hamıya açıqdır - ADMIN
+           bağlanmasa, istənilən kəs özünə admin hesabı aça bilər. */
+        if (request.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("Admin hesabı qeydiyyatdan yaradıla bilməz.");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("Bu email (" + request.getEmail() + ") artıq qeydiyyatdan keçib!");
         }
