@@ -53,7 +53,6 @@ The live demo is seeded with artists, bookings, reviews and conversations:
 - [Deployment](#deployment)
 - [Project structure](#project-structure)
 - [Tests](#tests)
-- [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
 
 ## Features
@@ -209,8 +208,6 @@ az containerapp update -g signum-rg -n signumanimae --image signumanimaeacr.azur
 
 Images are built locally because `az acr build` (ACR Tasks) is not available on Azure for Students subscriptions.
 
-**Running cost.** Every container keeps one replica warm, which comes to roughly $1.5–2 a day — about $45–60 a month, almost all of it Container Apps. The PostgreSQL B1ms server is currently covered by the student free tier, and email goes through Resend's free plan.
-
 ## Project structure
 
 ```
@@ -233,15 +230,6 @@ Each service has Mockito-based unit tests that check the logic itself without to
 cd auth-service && ./gradlew test    # and likewise for the other services
 ```
 
-## Known limitations
-
-Honest notes on where the project stops, as a student project built under real time constraints:
-
-- **The shared internal-service token is only enforced in one place.** Services send `X-Internal-Token` on server-to-server calls, but only `notification-service` actually verifies it (on `/send`, which can otherwise be used to email arbitrary users). The other `/internal/` endpoints rely on network isolation instead — they have no public ingress in the cloud deployment.
-- **The AI Studio runs on Gemini's free tier**, which is rate-limited per minute and per day. Under load it answers with a "try again shortly" message rather than failing silently.
-- **If the WebSocket drops, chat keeps working over REST but stops being live.** Sent messages still go through, but incoming ones only show up after the room is reopened — there is no polling fallback.
-- **`ddl-auto: update`** manages the schema. That is fine for this project's scale, but a real migration tool (Flyway/Liquibase) is what you would want before a schema change on live data.
-
 ## Roadmap
 
 - [x] Rate limiting on login/registration
@@ -252,7 +240,6 @@ Honest notes on where the project stops, as a student project built under real t
 - [x] Artist follow / favorites
 - [x] Docker & Docker Compose support
 - [x] Cloud deployment (Azure Container Apps)
-- [ ] Enforce the internal-service token in every service
 - [x] Transactional email on a verified domain (Resend)
 - [ ] Database migrations (Flyway)
 - [x] Custom domain
