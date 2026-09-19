@@ -129,6 +129,11 @@ function initAuthTabs() {
       $('#registerForm').classList.toggle('is-hidden', name !== 'register');
     });
   });
+
+  $('#toRegisterLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('.tab[data-tab="register"]').click();
+  });
 }
 
 function initAuthForms() {

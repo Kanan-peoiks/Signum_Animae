@@ -234,7 +234,14 @@ select option{ background:#fff; }
   background:linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,.9) 100%);
 }
 .auth-aside > *{ position:relative; z-index:1; }
-.auth-aside .sigil-sm{ filter:grayscale(1) brightness(0) invert(1); }
+/* ilan fotonun üstündə itməsin: böyük, ağ, iki nazik ağ halo cizgiləri
+   qalınlaşdırır, tünd kölgə fotodan ayırır */
+.auth-aside .sigil-sm{
+  width:88px;
+  filter:grayscale(1) brightness(0) invert(1)
+         drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)
+         drop-shadow(0 4px 14px rgba(0,0,0,.85));
+}
 .aside-word{ color:#fff; }
 .aside-text{ color:rgba(255,255,255,.82); }
 .aside-list li{ color:#fff; }
@@ -339,3 +346,6 @@ select option{ background:#fff; }
   background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%);
 }
 .artist-cover + .card{ position:relative; margin:0 28px; box-shadow:6px 6px 0 var(--violet); }
+
+/* giriş formasındakı "Qeydiyyatdan keç" linki */
+.form-note .note-link{ font-weight:700; }

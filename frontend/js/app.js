@@ -1235,11 +1235,12 @@ const App = {
             '<div><div class="a-name">' + esc(user.fullName || '—') + '</div>' +
               '<div class="a-city">' + esc(user.email) + ' · ' +
                 (Session.isAdmin ? 'Admin' : (Session.isArtist ? 'Rəssam' : 'Müştəri')) + '</div>' +
-              '<div style="margin-top:6px">' +
+              // flex + gap: düymə alt sətrə keçəndə də nişana yapışmır
+              '<div style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:10px">' +
                 (user.emailVerified
                   ? '<span class="badge COMPLETED">Email təsdiqlənib ✓</span>'
                   : '<span class="badge PENDING">Email təsdiqlənməyib</span>' +
-                    '<button class="btn btn-ghost btn-sm" id="verifyEmailBtn" style="margin-left:8px">' +
+                    '<button class="btn btn-ghost btn-sm" id="verifyEmailBtn">' +
                       'Təsdiq linki göndər</button>') +
               '</div>' +
             '</div>' +
