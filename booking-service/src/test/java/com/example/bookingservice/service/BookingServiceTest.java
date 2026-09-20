@@ -8,6 +8,9 @@ import com.example.bookingservice.dto.BookingResponse;
 import com.example.bookingservice.dto.CompletedTattooDto;
 import com.example.bookingservice.model.Booking;
 import com.example.bookingservice.model.BookingStatus;
+import com.example.bookingservice.exception.InvalidStatusChangeException;
+import com.example.bookingservice.exception.SlotAlreadyTakenException;
+import com.example.bookingservice.repository.AvailabilitySlotRepository;
 import com.example.bookingservice.repository.BookingRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +22,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -29,6 +35,8 @@ class BookingServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+    @Mock
+    private AvailabilitySlotRepository availabilitySlotRepository;
     @Mock
     private AuthServiceClient authServiceClient;
     @Mock
@@ -105,5 +113,65 @@ class BookingServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getArtistName()).isEqualTo("Usta");
+    }
+
+    /* Eyni vaxta ikinci sifariş: əvvəllər heç bir yoxlama yox idi. */
+    @Test
+    void createBooking_refusesATimeThatIsAlreadyTaken() {
+        LocalDateTime when = LocalDateTime.now().plusDays(2);
+        BookingRequest request = new BookingRequest();
+        request.setArtistId(5L);
+        request.setBookingDate(when);
+
+        when(bookingRepository.existsByArtistIdAndBookingDateAndStatusIn(eq(5L), eq(when), any()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> bookingService.createBooking(request, 42L))
+                .isInstanceOf(SlotAlreadyTakenException.class);
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    private Booking booking(BookingStatus status) {
+        return Booking.builder()
+                .id(9L).customerId(42L).artistId(5L)
+                .bookingDate(LocalDateTime.now().plusDays(3))
+                .status(status)
+                .build();
+    }
+
+    /* Müştəri ləğv edəndən sonra usta prosesi davam etdirə bilirdi. */
+    @Test
+    void updateStatus_refusesToReopenACancelledBooking() {
+        when(bookingRepository.findById(9L)).thenReturn(Optional.of(booking(BookingStatus.CANCELLED)));
+
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(9L, BookingStatus.CONFIRMED, 5L))
+                .isInstanceOf(InvalidStatusChangeException.class);
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_refusesWhenTheCustomerCompletesTheirOwnBooking() {
+        when(bookingRepository.findById(9L)).thenReturn(Optional.of(booking(BookingStatus.CONFIRMED)));
+
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(9L, BookingStatus.COMPLETED, 42L))
+                .isInstanceOf(InvalidStatusChangeException.class);
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    /* Ləğv olunan vaxt ustanın açıq pəncərələrinə geri qayıtmalıdır. */
+    @Test
+    void updateStatus_freesTheSlotWhenTheBookingIsCancelled() {
+        Booking existing = booking(BookingStatus.CONFIRMED);
+        when(bookingRepository.findById(9L)).thenReturn(Optional.of(existing));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(availabilitySlotRepository.findByArtistIdAndSlotStart(5L, existing.getBookingDate()))
+                .thenReturn(Optional.empty());
+
+        bookingService.updateBookingStatus(9L, BookingStatus.CANCELLED, 42L);
+
+        verify(availabilitySlotRepository).findByArtistIdAndSlotStart(5L, existing.getBookingDate());
     }
 }

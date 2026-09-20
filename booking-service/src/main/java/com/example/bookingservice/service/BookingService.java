@@ -11,6 +11,9 @@ import com.example.bookingservice.dto.CompletedTattooDto;
 import com.example.bookingservice.exception.BookingNotFoundException;
 import com.example.bookingservice.model.Booking;
 import com.example.bookingservice.model.BookingStatus;
+import com.example.bookingservice.exception.InvalidStatusChangeException;
+import com.example.bookingservice.exception.SlotAlreadyTakenException;
+import com.example.bookingservice.repository.AvailabilitySlotRepository;
 import com.example.bookingservice.repository.BookingRepository;
 import com.example.bookingservice.security.AccessGuard;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -40,10 +44,21 @@ public class BookingService {
             BookingStatus.CANCELLED, "Ləğv edilib");
 
     private final BookingRepository bookingRepository;
+    private final AvailabilitySlotRepository availabilitySlotRepository;
     private final AuthServiceClient authServiceClient;
     private final NotificationServiceClient notificationServiceClient;
 
+    /** Yeri tutan vəziyyətlər - ləğv edilmiş və tamamlanmış sifarişlər vaxtı boşaldır. */
+    private static final List<BookingStatus> ACTIVE_STATUSES =
+            List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED);
+
     public BookingResponse createBooking(BookingRequest request, Long callerId) {
+        if (bookingRepository.existsByArtistIdAndBookingDateAndStatusIn(
+                request.getArtistId(), request.getBookingDate(), ACTIVE_STATUSES)) {
+            throw new SlotAlreadyTakenException(
+                    "Bu vaxt artıq tutulub. Zəhmət olmasa başqa vaxt seç.");
+        }
+
         Booking booking = Booking.builder()
                 .customerId(callerId)
                 .artistId(request.getArtistId())
@@ -55,6 +70,7 @@ public class BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+        markSlot(saved.getArtistId(), saved.getBookingDate(), true);
 
         notifyQuietly(saved.getArtistId(), "Yeni sifariş",
                 customerName(callerId) + " sizə sifariş göndərdi.");
@@ -115,8 +131,15 @@ public class BookingService {
         AccessGuard.requireOneOf(callerId, booking.getCustomerId(), booking.getArtistId(),
                 "Bu sifariş sizə aid deyil.");
 
+        checkStatusChange(booking, newStatus, callerId);
+
         booking.setStatus(newStatus);
         Booking updated = bookingRepository.save(booking);
+
+        // Ləğv olunan vaxt yenidən boşalır, tamamlanan vaxt isə keçmişdə qalır
+        if (newStatus == BookingStatus.CANCELLED) {
+            markSlot(updated.getArtistId(), updated.getBookingDate(), false);
+        }
 
         Long peerId = callerId.equals(updated.getCustomerId())
                 ? updated.getArtistId()
@@ -126,6 +149,56 @@ public class BookingService {
                         + STATUS_AZ.getOrDefault(newStatus, newStatus.name()));
 
         return mapToResponse(updated);
+    }
+
+    /* Vəziyyət qaydaları. Əvvəllər heç bir qayda yox idi: ləğv edilmiş sifariş
+       yenidən təsdiqlənə, müştəri isə sifarişi özü "tamamlandı" edə bilirdi. */
+    private void checkStatusChange(Booking booking, BookingStatus newStatus, Long callerId) {
+        BookingStatus current = booking.getStatus();
+
+        if (current == BookingStatus.CANCELLED || current == BookingStatus.COMPLETED) {
+            throw new InvalidStatusChangeException(
+                    "Bu sifariş artıq bağlanıb (" + STATUS_AZ.getOrDefault(current, current.name())
+                            + "), vəziyyəti dəyişdirmək olmaz.");
+        }
+        if (newStatus == current) {
+            throw new InvalidStatusChangeException("Sifariş onsuz da bu vəziyyətdədir.");
+        }
+
+        boolean isArtist = callerId.equals(booking.getArtistId());
+
+        switch (newStatus) {
+            case CONFIRMED -> {
+                if (!isArtist) {
+                    throw new InvalidStatusChangeException("Sifarişi yalnız usta təsdiqləyə bilər.");
+                }
+                if (current != BookingStatus.PENDING) {
+                    throw new InvalidStatusChangeException("Yalnız gözləyən sifariş təsdiqlənə bilər.");
+                }
+            }
+            case COMPLETED -> {
+                if (!isArtist) {
+                    throw new InvalidStatusChangeException("Sifarişi yalnız usta tamamlaya bilər.");
+                }
+                if (current != BookingStatus.CONFIRMED) {
+                    throw new InvalidStatusChangeException(
+                            "Yalnız təsdiqlənmiş sifariş tamamlana bilər.");
+                }
+            }
+            case CANCELLED -> { /* həm müştəri, həm usta ləğv edə bilər */ }
+            case PENDING -> throw new InvalidStatusChangeException(
+                    "Sifarişi yenidən gözləmə vəziyyətinə qaytarmaq olmaz.");
+        }
+    }
+
+    /* Sifariş verilən vaxt ustanın uyğunluq pəncərəsinə düşürsə, o pəncərə
+       tutulur və açıq siyahıda görünmür; ləğv olunanda yenidən açılır. */
+    private void markSlot(Long artistId, LocalDateTime bookingDate, boolean booked) {
+        availabilitySlotRepository.findByArtistIdAndSlotStart(artistId, bookingDate)
+                .ifPresent(slot -> {
+                    slot.setBooked(booked);
+                    availabilitySlotRepository.save(slot);
+                });
     }
 
     private String customerName(Long customerId) {

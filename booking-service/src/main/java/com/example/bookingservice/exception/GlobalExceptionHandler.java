@@ -16,6 +16,16 @@ public class GlobalExceptionHandler {
         return build(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(SlotAlreadyTakenException.class)
+    public ResponseEntity<ErrorResponse> handleSlotTaken(SlotAlreadyTakenException ex) {
+        return build(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(InvalidStatusChangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidStatusChange(InvalidStatusChangeException ex) {
+        return build(ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(BookingNotCompletedException.class)
     public ResponseEntity<ErrorResponse> handleBookingNotCompleted(BookingNotCompletedException ex) {
         return build(ex.getMessage(), HttpStatus.CONFLICT);

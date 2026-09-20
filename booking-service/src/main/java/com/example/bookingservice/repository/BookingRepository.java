@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
@@ -18,6 +19,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Page<Booking> findByCustomerId(Long customerId, Pageable pageable);
     Page<Booking> findByArtistId(Long artistId, Pageable pageable);
+
+    /* Eyni usta, eyni vaxt: ləğv/tamamlanmış sifarişlər yeri tutmur. */
+    boolean existsByArtistIdAndBookingDateAndStatusIn(
+            Long artistId, LocalDateTime bookingDate, Collection<BookingStatus> statuses);
 
     long countByStatus(BookingStatus status);
 
