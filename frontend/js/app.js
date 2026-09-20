@@ -683,6 +683,10 @@ const App = {
     } catch (err) {
       toastErr(err.message);
       done();
+      /* Səhifə köhnə ola bilər: məsələn müştəri bu sifarişi artıq ləğv edib,
+         amma ustanın ekranındakı siyahı hələ köhnə vəziyyəti göstərir.
+         Siyahını yeniləyirik ki, düymələr də real vəziyyətə uyğunlaşsın. */
+      this.nav(backRoute);
     }
   },
 

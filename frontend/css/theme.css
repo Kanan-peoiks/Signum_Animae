@@ -236,11 +236,12 @@ select option{ background:#fff; }
 .auth-aside > *{ position:relative; z-index:1; }
 /* ilan fotonun üstündə itməsin: böyük, ağ, iki nazik ağ halo cizgiləri
    qalınlaşdırır, tünd kölgə fotodan ayırır */
+/* nişan başlığın solunda, mətnlə eyni sırada */
+.aside-brand{ display:flex; align-items:center; gap:clamp(14px,1.6vw,24px); }
+.aside-brand .aside-word{ margin-top:0; }
 .auth-aside .sigil-sm{
-  width:88px;
-  filter:grayscale(1) brightness(0) invert(1)
-         drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)
-         drop-shadow(0 4px 14px rgba(0,0,0,.85));
+  width:clamp(58px,6.4vw,92px); flex:0 0 auto;
+  filter:grayscale(1) brightness(0) invert(1);
 }
 .aside-word{ color:#fff; }
 .aside-text{ color:rgba(255,255,255,.82); }
