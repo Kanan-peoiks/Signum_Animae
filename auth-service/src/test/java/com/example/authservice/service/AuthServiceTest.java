@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,10 +23,11 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtUtil jwtUtil;
     @Mock private AccountTokenService accountTokenService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     private AuthService authService() {
         return new AuthService(userRepository, artistProfileRepository,
-                passwordEncoder, jwtUtil, accountTokenService);
+                passwordEncoder, jwtUtil, accountTokenService, eventPublisher);
     }
 
     private RegisterRequest request(Role role) {

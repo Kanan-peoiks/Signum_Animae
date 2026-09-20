@@ -4,6 +4,7 @@ import com.example.authservice.dto.AuthResponse;
 import com.example.authservice.dto.EmailRequest;
 import com.example.authservice.dto.LoginRequest;
 import com.example.authservice.dto.RegisterRequest;
+import com.example.authservice.event.UserRegisteredEvent;
 import com.example.authservice.dto.ResetPasswordRequest;
 import com.example.authservice.exception.InvalidCredentialsException;
 import com.example.authservice.exception.UserAlreadyExistsException;
@@ -19,6 +20,7 @@ import com.example.authservice.repo.UserRepo;
 import com.example.authservice.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AccountTokenService accountTokenService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -65,12 +68,10 @@ public class AuthService {
             artistProfileRepository.save(profile);
         }
 
-        try {
-            accountTokenService.sendVerificationEmail(
-                    user.getId(), accountTokenService.issue(user.getId(), AuthTokenType.EMAIL_VERIFICATION));
-        } catch (Exception ex) {
-            log.error("Təsdiq məktubu hazırlanarkən xəta (userId={}): {}", user.getId(), ex.getMessage(), ex);
-        }
+        /* Məktub yalnız tranzaksiya bağlandıqdan sonra göndərilir: notification-service
+           e-poçtu öyrənmək üçün auth-service-ə geri müraciət edir və hələ commit olunmamış
+           istifadəçini tapa bilmirdi (404) - nəticədə təsdiq məktubu heç vaxt getmirdi. */
+        eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
         return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole());
